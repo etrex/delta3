@@ -110,9 +110,10 @@ declare global {
 // @ts-ignore
 Cypress.Commands.add('loginAsCustomer', () => {
   cy.visit('/login')
-  cy.get('[data-cy=username-input]').type('customer1')
-  cy.get('[data-cy=password-input]').type('password')
-  cy.get('[data-cy=role-select]').select('CUSTOMER')
+  cy.get('[data-cy=role-selector]').click()
+  cy.get('.el-select-dropdown__item').contains('Customer').click()
+  cy.get('[data-cy=username]').type('customer1')
+  cy.get('[data-cy=password]').type('password123')
   cy.get('[data-cy=login-btn]').click()
   cy.url().should('not.include', '/login')
 })
@@ -120,9 +121,10 @@ Cypress.Commands.add('loginAsCustomer', () => {
 // @ts-ignore
 Cypress.Commands.add('loginAsAdmin', () => {
   cy.visit('/login')
-  cy.get('[data-cy=username-input]').type('admin')
-  cy.get('[data-cy=password-input]').type('password')
-  cy.get('[data-cy=role-select]').select('ADMIN')
+  cy.get('[data-cy=role-selector]').click()
+  cy.get('.el-select-dropdown__item').contains('Admin').click()
+  cy.get('[data-cy=username]').type('admin')
+  cy.get('[data-cy=password]').type('password123')
   cy.get('[data-cy=login-btn]').click()
   cy.url().should('not.include', '/login')
 })
