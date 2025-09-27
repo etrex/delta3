@@ -43,6 +43,12 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
+    display-request-duration: true
+    display-operation-id: true
+  info:
+    title: "Intelligent Order Management System API"
+    description: "智能訂單管理系統 REST API 文檔"
+    version: "v1.0.0"
 
 jwt:
   secret: ${JWT_SECRET:dev-only-secret-DO-NOT-USE-IN-PRODUCTION-please-set-JWT_SECRET-env-var}
