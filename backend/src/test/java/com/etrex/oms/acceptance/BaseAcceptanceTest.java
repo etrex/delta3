@@ -33,7 +33,7 @@ public abstract class BaseAcceptanceTest {
         // 取得 Admin Token
         AuthRequest adminAuth = new AuthRequest();
         adminAuth.setUsername("admin");
-        adminAuth.setPassword("admin123");
+        adminAuth.setPassword("password123");
 
         MvcResult adminResult = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -20,7 +20,7 @@ public class PayOrderTest extends BaseAcceptanceTest {
     void testPayOrder() throws Exception {
         // 先建立訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);

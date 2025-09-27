@@ -16,10 +16,10 @@ public class GetProductListTest extends BaseAcceptanceTest {
         mockMvc.perform(get("/api/product")
                 .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThan(0))))
-                .andExpect(jsonPath("$[0].id").exists())
-                .andExpect(jsonPath("$[0].name").exists())
-                .andExpect(jsonPath("$[0].price").exists())
-                .andExpect(jsonPath("$[0].stock").exists());
+                .andExpect(jsonPath("$.content", hasSize(greaterThan(0))))
+                .andExpect(jsonPath("$.content[0].id").exists())
+                .andExpect(jsonPath("$.content[0].name").exists())
+                .andExpect(jsonPath("$.content[0].price").exists())
+                .andExpect(jsonPath("$.content[0].stock").exists());
     }
 }

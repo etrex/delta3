@@ -142,7 +142,7 @@ public class AcceptanceTest {
     @Test
     void testCreateOrderWithStockValidation() throws Exception {
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L); // customer1's ID
+        request.setCustomerId(101L); // customer1's ID
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);
@@ -161,7 +161,7 @@ public class AcceptanceTest {
 
         // 測試庫存不足
         CreateOrderRequest largeRequest = new CreateOrderRequest();
-        largeRequest.setCustomerId(2L);
+        largeRequest.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest largeItem = new CreateOrderRequest.OrderItemRequest();
         largeItem.setProductId(1L);
@@ -180,7 +180,7 @@ public class AcceptanceTest {
     void testGetOrderDetails() throws Exception {
         // 先建立訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);
@@ -214,7 +214,7 @@ public class AcceptanceTest {
     void testPayOrder() throws Exception {
         // 先建立訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);
@@ -250,7 +250,7 @@ public class AcceptanceTest {
     void testCancelOrder() throws Exception {
         // 先建立訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);
@@ -280,7 +280,7 @@ public class AcceptanceTest {
     void testShipOrderAdminOnly() throws Exception {
         // 先建立並支付訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);
@@ -401,11 +401,11 @@ public class AcceptanceTest {
         mockMvc.perform(get("/api/orders")
                 .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[*].customerId", everyItem(is(2))));
+                .andExpect(jsonPath("$.content[*].customerId", everyItem(is(101))));
 
         // 建立一個屬於 customer1 的訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);

@@ -20,12 +20,13 @@ public class DeleteProductTest extends BaseAcceptanceTest {
         // Admin 下架 (應該成功)
         mockMvc.perform(delete("/api/product/1")
                 .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         // 確認商品已下架
         mockMvc.perform(get("/api/product")
+                .param("status", "INACTIVE")
                 .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.id == 1)].status").value("INACTIVE"));
+                .andExpect(jsonPath("$.content[?(@.id == 1)].status").value("INACTIVE"));
     }
 }

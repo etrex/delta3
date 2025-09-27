@@ -20,6 +20,7 @@ public class CreateProductTest extends BaseAcceptanceTest {
         newProduct.setDescription("測試商品");
         newProduct.setPrice(BigDecimal.valueOf(299.99));
         newProduct.setStock(50);
+        newProduct.setStatus("ACTIVE");
 
         // Customer 嘗試新增 (應該失敗)
         mockMvc.perform(post("/api/product")

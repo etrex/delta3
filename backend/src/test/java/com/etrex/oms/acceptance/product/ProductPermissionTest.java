@@ -19,7 +19,7 @@ public class ProductPermissionTest extends BaseAcceptanceTest {
         // 先下架一個商品
         mockMvc.perform(delete("/api/product/2")
                 .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         // Customer 查詢商品列表，不應看到下架商品
         MvcResult customerResult = mockMvc.perform(get("/api/product")
@@ -29,7 +29,9 @@ public class ProductPermissionTest extends BaseAcceptanceTest {
 
         String customerResponse = customerResult.getResponse().getContentAsString();
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> customerProducts = objectMapper.readValue(customerResponse, List.class);
+        Map<String, Object> pageResult = objectMapper.readValue(customerResponse, Map.class);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> customerProducts = (List<Map<String, Object>>) pageResult.get("content");
 
         // 確認沒有 INACTIVE 商品
         for (Map<String, Object> product : customerProducts) {
@@ -38,8 +40,9 @@ public class ProductPermissionTest extends BaseAcceptanceTest {
 
         // Admin 可以看到所有商品（包含下架）
         mockMvc.perform(get("/api/product")
+                .param("status", "INACTIVE")
                 .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.id == 2)].status").value("INACTIVE"));
+                .andExpect(jsonPath("$.content[?(@.id == 2)].status").value("INACTIVE"));
     }
 }

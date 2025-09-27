@@ -16,7 +16,7 @@ public class CreateOrderTest extends BaseAcceptanceTest {
     @Test
     void testCreateOrderWithStockValidation() throws Exception {
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L); // customer1's ID
+        request.setCustomerId(101L); // customer1's ID
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);
@@ -35,7 +35,7 @@ public class CreateOrderTest extends BaseAcceptanceTest {
 
         // 測試庫存不足
         CreateOrderRequest largeRequest = new CreateOrderRequest();
-        largeRequest.setCustomerId(2L);
+        largeRequest.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest largeItem = new CreateOrderRequest.OrderItemRequest();
         largeItem.setProductId(1L);

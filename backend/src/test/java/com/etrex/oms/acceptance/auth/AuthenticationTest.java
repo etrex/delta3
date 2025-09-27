@@ -16,7 +16,7 @@ public class AuthenticationTest extends BaseAcceptanceTest {
         // Admin 登入
         AuthRequest adminRequest = new AuthRequest();
         adminRequest.setUsername("admin");
-        adminRequest.setPassword("admin123");
+        adminRequest.setPassword("password123");
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)

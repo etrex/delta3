@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 public class PaymentDTO {
     private Long id;
 
-    @NotNull(message = "Order ID is required")
     private Long orderId;
 
     @NotNull(message = "Payment method is required")

@@ -20,7 +20,7 @@ public class ShipOrderTest extends BaseAcceptanceTest {
     void testShipOrderAdminOnly() throws Exception {
         // 先建立並支付訂單
         CreateOrderRequest request = new CreateOrderRequest();
-        request.setCustomerId(2L);
+        request.setCustomerId(101L);
 
         CreateOrderRequest.OrderItemRequest item = new CreateOrderRequest.OrderItemRequest();
         item.setProductId(1L);

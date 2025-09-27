@@ -24,14 +24,14 @@ public class UpdateProductTest extends BaseAcceptanceTest {
         updateProduct.setStatus("ACTIVE");
 
         // Customer 嘗試更新 (應該失敗)
-        mockMvc.perform(put("/api/product")
+        mockMvc.perform(put("/api/product/1")
                 .header("Authorization", "Bearer " + customerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateProduct)))
                 .andExpect(status().isForbidden());
 
         // Admin 更新 (應該成功)
-        mockMvc.perform(put("/api/product")
+        mockMvc.perform(put("/api/product/1")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateProduct)))
