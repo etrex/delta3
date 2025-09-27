@@ -9,6 +9,14 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class ChatResponse {
-    private String message;
-    private Long timestamp;
+    private String response;
+    private String sessionId;
+
+    public ChatResponse() {
+    }
+
+    public ChatResponse(String response, Long timestamp) {
+        this.response = response;
+        this.sessionId = String.valueOf(timestamp);
+    }
 }

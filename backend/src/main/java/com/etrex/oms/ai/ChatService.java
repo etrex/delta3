@@ -15,6 +15,7 @@ import java.time.Duration;
 @Service
 @RequiredArgsConstructor
 public class ChatService {
+    private final OrderTools orderTools;
     @Value("${langchain4j.ollama.base-url}")
     private String ollamaBaseUrl;
 
@@ -42,7 +43,7 @@ public class ChatService {
         if (orderAssistant == null) {
             orderAssistant = AiServices.builder(OrderAssistant.class)
                     .chatLanguageModel(getChatModel())
-                    .tools(new OrderTools())
+                    .tools(orderTools)
                     .build();
         }
         return orderAssistant;

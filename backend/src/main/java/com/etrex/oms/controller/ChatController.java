@@ -15,13 +15,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("/api/chat")
 @RequiredArgsConstructor
 @Tag(name = "Chat", description = "AI Chatbot APIs")
 public class ChatController {
     private final ChatService chatService;
 
-    @PostMapping("/message")
+    @PostMapping
     @Operation(summary = "Send message to AI chatbot", description = "Send a message to the AI assistant")
     public ResponseEntity<ChatResponse> sendMessage(
             @RequestBody ChatRequest request,
@@ -29,7 +29,11 @@ public class ChatController {
 
         String response = chatService.chat(request.getMessage(), user.getRole().name());
 
-        return ResponseEntity.ok(new ChatResponse(response, System.currentTimeMillis()));
+        ChatResponse chatResponse = new ChatResponse();
+        chatResponse.setResponse(response);
+        chatResponse.setSessionId(request.getSessionId());
+
+        return ResponseEntity.ok(chatResponse);
     }
 
     @PostMapping("/assistant")
@@ -40,6 +44,10 @@ public class ChatController {
 
         String response = chatService.getOrderAssistant().chat(request.getMessage());
 
-        return ResponseEntity.ok(new ChatResponse(response, System.currentTimeMillis()));
+        ChatResponse chatResponse = new ChatResponse();
+        chatResponse.setResponse(response);
+        chatResponse.setSessionId(request.getSessionId());
+
+        return ResponseEntity.ok(chatResponse);
     }
 }

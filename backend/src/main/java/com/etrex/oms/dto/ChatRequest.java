@@ -10,4 +10,6 @@ import lombok.Data;
 public class ChatRequest {
     @NotBlank(message = "Message is required")
     private String message;
+
+    private String sessionId;
 }

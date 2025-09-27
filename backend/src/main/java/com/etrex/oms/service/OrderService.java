@@ -43,7 +43,7 @@ public class OrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> items = new ArrayList<>();
 
-        for (OrderItemDTO itemDTO : request.getItems()) {
+        for (CreateOrderRequest.OrderItemRequest itemDTO : request.getItems()) {
             Product product = productRepository.findById(itemDTO.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 

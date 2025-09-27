@@ -18,7 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/api/product")
 @RequiredArgsConstructor
 @Tag(name = "Products", description = "Product management APIs")
 public class ProductController {
