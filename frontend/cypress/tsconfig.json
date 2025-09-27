@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["es5", "dom"],
+    "types": ["cypress", "mocha", "node", "chai"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "sourceMap": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["../node_modules/@types"]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": []
+}

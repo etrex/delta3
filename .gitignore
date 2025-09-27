@@ -1,3 +1,5 @@
 INPUT_PROMPT.md
 
 backend/target/
+backend/app.log
+backend/application.log
