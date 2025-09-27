@@ -1,3 +1,10 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.jdt.ls.java.home": "/Users/etrexkuo/.sdkman/candidates/java/17.0.16-amzn",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-17",
+            "path": "/Users/etrexkuo/.sdkman/candidates/java/17.0.16-amzn"
+        }
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
 }
