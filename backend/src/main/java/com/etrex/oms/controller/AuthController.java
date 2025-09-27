@@ -6,7 +6,6 @@ package com.etrex.oms.controller;
 import com.etrex.oms.dto.AuthRequest;
 import com.etrex.oms.dto.AuthResponse;
 import com.etrex.oms.entity.User;
-import com.etrex.oms.repository.UserRepository;
 import com.etrex.oms.security.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
 
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
