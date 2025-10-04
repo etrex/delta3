@@ -293,6 +293,8 @@ const addQuantity = ref(1)
 
 // Initialize
 onMounted(async () => {
+  // Ensure showInactive is false for customer view
+  productsStore.setFilter({ showInactive: false })
   await productsStore.loadProducts()
   productsStore.updatePagination()
 })

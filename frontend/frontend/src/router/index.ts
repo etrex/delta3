@@ -53,6 +53,18 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['ADMIN'] }
     },
     {
+      path: '/admin/products/new',
+      name: 'ProductNew',
+      component: () => import('@/views/admin/ProductNew.vue'),
+      meta: { requiresAuth: true, roles: ['ADMIN'] }
+    },
+    {
+      path: '/admin/products/:id/edit',
+      name: 'ProductEdit',
+      component: () => import('@/views/admin/ProductEdit.vue'),
+      meta: { requiresAuth: true, roles: ['ADMIN'] }
+    },
+    {
       path: '/admin/shipping',
       name: 'ShippingManagement',
       component: () => import('@/views/admin/ShippingManagement.vue'),

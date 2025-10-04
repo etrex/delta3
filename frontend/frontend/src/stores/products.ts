@@ -10,6 +10,24 @@ export interface Product {
   image: string
   status: 'ACTIVE' | 'INACTIVE'
   category: string
+  createdAt?: string
+  stockThreshold?: number
+}
+
+export interface ProductFormData {
+  name: string
+  price: number
+  description: string
+  stock: number
+  status: 'ACTIVE' | 'INACTIVE'
+  category: string
+  stockThreshold?: number
+}
+
+export interface StockAdjustment {
+  type: 'increase' | 'decrease'
+  quantity: number
+  reason: string
 }
 
 export interface ProductFilter {
@@ -30,7 +48,7 @@ export interface PaginationInfo {
 export const useProductsStore = defineStore('products', () => {
   const products = ref<Product[]>([])
   const loading = ref(false)
-  const sortBy = ref<'name' | 'price' | 'stock'>('name')
+  const sortBy = ref<'name' | 'price' | 'stock' | null>(null)
   const sortOrder = ref<'asc' | 'desc'>('asc')
   const filter = ref<ProductFilter>({
     search: '',
@@ -56,7 +74,9 @@ export const useProductsStore = defineStore('products', () => {
       stock: 10,
       image: '/images/product1.jpg',
       status: 'ACTIVE',
-      category: '電子產品'
+      category: '電子產品',
+      createdAt: new Date('2024-01-01').toISOString(),
+      stockThreshold: 5
     },
     {
       id: 2,
@@ -201,7 +221,7 @@ export const useProductsStore = defineStore('products', () => {
       result = result.filter(p => p.price <= filter.value.priceMax!)
     }
 
-    // Apply sorting
+    // Apply sorting - default to newest first (by createdAt)
     result.sort((a, b) => {
       let comparison = 0
 
@@ -215,6 +235,11 @@ export const useProductsStore = defineStore('products', () => {
         case 'stock':
           comparison = a.stock - b.stock
           break
+        default:
+          // Sort by creation date (newest first)
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          comparison = dateB - dateA
       }
 
       return sortOrder.value === 'desc' ? -comparison : comparison
@@ -287,11 +312,15 @@ export const useProductsStore = defineStore('products', () => {
   }
 
   const toggleProductStatus = async (productId: number) => {
-    const product = products.value.find(p => p.id === productId)
+    // Update in mockProducts (the source of truth)
+    const product = mockProducts.find(p => p.id === productId)
     if (product) {
       product.status = product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 300))
+      // Update the reactive products array
+      products.value = [...mockProducts]
+      updatePagination()
     }
   }
 
@@ -299,6 +328,172 @@ export const useProductsStore = defineStore('products', () => {
     // 從 mockProducts 查找，因為這是實際的資料來源
     return mockProducts.find(p => p.id === id)
   }
+
+  // CRUD Operations
+  const createProduct = async (productData: ProductFormData) => {
+    loading.value = true
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const newProduct: Product = {
+        id: Math.max(...mockProducts.map(p => p.id)) + 1,
+        name: productData.name,
+        price: productData.price,
+        description: productData.description,
+        stock: productData.stock,
+        image: '/images/placeholder.jpg',
+        status: productData.status,
+        category: productData.category,
+        createdAt: new Date().toISOString(),
+        stockThreshold: productData.stockThreshold || 5
+      }
+
+      mockProducts.push(newProduct)
+      products.value = [...mockProducts]
+      updatePagination()
+
+      return { success: true, message: '商品已成功創建', product: newProduct }
+    } catch (error) {
+      return { success: false, message: '創建商品失敗' }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updateProduct = async (id: number, productData: Partial<ProductFormData>) => {
+    loading.value = true
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const productIndex = mockProducts.findIndex(p => p.id === id)
+      if (productIndex === -1) {
+        return { success: false, message: '商品不存在' }
+      }
+
+      const product = mockProducts[productIndex]
+      mockProducts[productIndex] = {
+        ...product,
+        ...productData,
+        price: productData.price !== undefined ? productData.price : product.price,
+        stock: productData.stock !== undefined ? productData.stock : product.stock
+      }
+
+      products.value = [...mockProducts]
+      updatePagination()
+
+      return { success: true, message: '商品已成功更新' }
+    } catch (error) {
+      return { success: false, message: '更新商品失敗' }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const deleteProduct = async (id: number) => {
+    loading.value = true
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const index = mockProducts.findIndex(p => p.id === id)
+      if (index > -1) {
+        mockProducts.splice(index, 1)
+        products.value = [...mockProducts]
+        updatePagination()
+        return { success: true, message: '商品已刪除' }
+      }
+      return { success: false, message: '商品不存在' }
+    } catch (error) {
+      return { success: false, message: '刪除商品失敗' }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const adjustStock = async (id: number, adjustment: StockAdjustment) => {
+    loading.value = true
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const product = mockProducts.find(p => p.id === id)
+      if (!product) {
+        return { success: false, message: '商品不存在' }
+      }
+
+      const adjustmentAmount = adjustment.type === 'increase' ? adjustment.quantity : -adjustment.quantity
+      const newStock = product.stock + adjustmentAmount
+
+      if (newStock < 0) {
+        return { success: false, message: '庫存不能為負數' }
+      }
+
+      product.stock = newStock
+      products.value = [...mockProducts]
+
+      return { success: true, message: '庫存已調整', newStock }
+    } catch (error) {
+      return { success: false, message: '調整庫存失敗' }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const batchUpdateStatus = async (ids: number[], status: 'ACTIVE' | 'INACTIVE') => {
+    loading.value = true
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      ids.forEach(id => {
+        const product = mockProducts.find(p => p.id === id)
+        if (product) {
+          product.status = status
+        }
+      })
+
+      products.value = [...mockProducts]
+      updatePagination()
+
+      return { success: true, message: '已成功處理' }
+    } catch (error) {
+      return { success: false, message: '批量操作失敗' }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const exportProducts = async (format: 'CSV' | 'JSON') => {
+    loading.value = true
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      if (format === 'CSV') {
+        const csvContent = [
+          ['ID', '名稱', '價格', '庫存', '狀態', '類別', '建立時間'].join(','),
+          ...filteredProducts.value.map(p =>
+            [p.id, p.name, p.price, p.stock, p.status, p.category, p.createdAt].join(',')
+          )
+        ].join('\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `products_${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+        window.URL.revokeObjectURL(url)
+      }
+
+      return { success: true, message: '匯出成功' }
+    } catch (error) {
+      return { success: false, message: '匯出失敗' }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Low stock products
+  const lowStockProducts = computed(() => {
+    return mockProducts.filter(p => p.stock <= (p.stockThreshold || 5) && p.status === 'ACTIVE')
+  })
 
   return {
     products,
@@ -310,12 +505,19 @@ export const useProductsStore = defineStore('products', () => {
     filteredProducts,
     paginatedProducts,
     categories,
+    lowStockProducts,
     loadProducts,
     setFilter,
     setPagination,
     sortProducts,
     toggleProductStatus,
     getProductById,
-    updatePagination
+    updatePagination,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    adjustStock,
+    batchUpdateStatus,
+    exportProducts
   }
 })
