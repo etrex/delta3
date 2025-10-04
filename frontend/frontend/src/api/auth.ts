@@ -12,17 +12,17 @@ const api = axios.create({
 
 export const authApi = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await api.post('/auth/login', credentials)
+    const response = await api.post('/api/auth/login', credentials)
     return response.data
   },
 
   async logout(): Promise<void> {
-    await api.post('/auth/logout')
+    await api.post('/api/auth/logout')
   },
 
   async validateToken(token: string): Promise<boolean> {
     try {
-      await api.get('/auth/validate', {
+      await api.get('/api/auth/validate', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -47,7 +47,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect to login if user is already authenticated (has token)
+    // Don't redirect on login endpoint failures
+    if (error.response?.status === 401 &&
+        !error.config?.url?.includes('/api/auth/login') &&
+        localStorage.getItem('auth_token')) {
       // Token 過期或無效，清除登入狀態
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_user')
