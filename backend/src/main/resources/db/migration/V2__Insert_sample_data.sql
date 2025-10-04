@@ -1,13 +1,15 @@
 -- Copyright (c) 2025 Etrex Kuo. All rights reserved.
 
--- Insert sample users
+-- Insert sample users (password: password123)
 INSERT INTO users (username, password, email, role, status) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 'admin@oms.com', 'ADMIN', 'ACTIVE'),
-('customer1', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 'customer1@example.com', 'CUSTOMER', 'ACTIVE'),
-('customer2', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 'customer2@example.com', 'CUSTOMER', 'ACTIVE');
+('admin', '$2a$10$8bmLWDLqjDShmzWzECfKCuAbkQkx7EGifa04vLP1XXqba7lH8Y7P6', 'admin@oms.com', 'ADMIN', 'ACTIVE'),
+('customer1', '$2a$10$8bmLWDLqjDShmzWzECfKCuAbkQkx7EGifa04vLP1XXqba7lH8Y7P6', 'customer1@example.com', 'CUSTOMER', 'ACTIVE'),
+('customer2', '$2a$10$8bmLWDLqjDShmzWzECfKCuAbkQkx7EGifa04vLP1XXqba7lH8Y7P6', 'customer2@example.com', 'CUSTOMER', 'ACTIVE');
 
 -- Insert sample products
 INSERT INTO products (name, description, price, stock, status) VALUES
+('測試商品1', '這是測試用商品1的描述', 199.99, 10, 'ACTIVE'),
+('測試商品2', '這是測試用商品2的描述', 299.99, 15, 'ACTIVE'),
 ('MacBook Pro M4', '14-inch laptop with M4 Pro chip', 1999.99, 50, 'ACTIVE'),
 ('iPhone 15 Pro', 'Latest iPhone with A17 Pro chip', 999.99, 100, 'ACTIVE'),
 ('AirPods Pro', 'Wireless earbuds with noise cancellation', 249.99, 200, 'ACTIVE'),

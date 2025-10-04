@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import api from '@/api/auth'
 
 export interface Product {
   id: number
@@ -68,25 +69,27 @@ export const useProductsStore = defineStore('products', () => {
   const mockProducts: Product[] = [
     {
       id: 1,
-      name: '測試商品 1',
-      price: 199,
-      description: '這是一個優質的測試商品，具有優良的品質保證。',
+      name: '測試商品1',
+      price: 199.99,
+      description: '這是測試用商品1的描述',
       stock: 10,
       image: '/images/product1.jpg',
       status: 'ACTIVE',
-      category: '電子產品',
+      category: '測試類別',
       createdAt: new Date('2024-01-01').toISOString(),
       stockThreshold: 5
     },
     {
       id: 2,
-      name: '測試商品 2',
-      price: 299,
-      description: '另一個精彩的測試商品，功能豐富實用。',
-      stock: 5,
+      name: '測試商品2',
+      price: 299.99,
+      description: '這是測試用商品2的描述',
+      stock: 15,
       image: '/images/product2.jpg',
       status: 'ACTIVE',
-      category: '電子產品'
+      category: '測試類別',
+      createdAt: new Date('2024-01-02').toISOString(),
+      stockThreshold: 5
     },
     {
       id: 3,
@@ -263,14 +266,17 @@ export const useProductsStore = defineStore('products', () => {
   const loadProducts = async () => {
     loading.value = true
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 300))
-      products.value = [...mockProducts] // Ensure reactivity
+      // Call real API
+      const response = await api.get<Product[]>('/api/product')
+      products.value = response.data
 
       // Force update pagination after products are loaded
       setTimeout(() => {
         updatePagination()
       }, 0)
+    } catch (error) {
+      console.error('Failed to load products:', error)
+      throw error
     } finally {
       loading.value = false
     }

@@ -115,7 +115,11 @@ Cypress.Commands.add('loginAsCustomer', () => {
   cy.get('[data-cy=username]').type('customer1')
   cy.get('[data-cy=password]').type('password123')
   cy.get('[data-cy=login-btn]').click()
-  cy.url().should('not.include', '/login')
+
+  // Wait for successful redirect
+  cy.url({ timeout: 15000 }).should('satisfy', (url) => {
+    return url.includes('/dashboard') || url.includes('/products')
+  })
 })
 
 // @ts-ignore
@@ -126,7 +130,11 @@ Cypress.Commands.add('loginAsAdmin', () => {
   cy.get('[data-cy=username]').type('admin')
   cy.get('[data-cy=password]').type('password123')
   cy.get('[data-cy=login-btn]').click()
-  cy.url().should('not.include', '/login')
+
+  // Wait for successful redirect
+  cy.url({ timeout: 15000 }).should('satisfy', (url) => {
+    return url.includes('/admin/dashboard') || url.includes('/admin')
+  })
 })
 
 // @ts-ignore

@@ -19,51 +19,22 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      // For development/testing, use mock login
-      const mockLogin = async (creds: LoginCredentials) => {
-        await new Promise(resolve => setTimeout(resolve, 500))
+      // Use real API
+      const response = await authApi.login(credentials)
 
-        // Check mock credentials
-        if (creds.role === 'CUSTOMER' && creds.username === 'customer1' && creds.password === 'password123') {
-          return {
-            user: {
-              id: 1,
-              username: 'customer1',
-              email: 'customer1@example.com',
-              role: 'CUSTOMER' as const
-            },
-            token: 'mock-customer-token-123'
-          }
-        } else if (creds.role === 'ADMIN' && creds.username === 'admin' && creds.password === 'password123') {
-          return {
-            user: {
-              id: 2,
-              username: 'admin',
-              email: 'admin@example.com',
-              role: 'ADMIN' as const
-            },
-            token: 'mock-admin-token-456'
-          }
-        } else {
-          throw new Error('登入失敗')
-        }
+      // Transform backend response to User object
+      const userObj: User = {
+        id: 0, // Backend doesn't return ID, use 0 as placeholder
+        username: response.username,
+        role: response.role
       }
 
-      // Try real API first, fallback to mock
-      let response
-      try {
-        response = await authApi.login(credentials)
-      } catch (apiError) {
-        console.log('API login failed, using mock login')
-        response = await mockLogin(credentials)
-      }
-
-      user.value = response.user
+      user.value = userObj
       token.value = response.token
 
       // 儲存到 localStorage
       localStorage.setItem('auth_token', response.token)
-      localStorage.setItem('auth_user', JSON.stringify(response.user))
+      localStorage.setItem('auth_user', JSON.stringify(userObj))
 
       return response
     } catch (err: any) {

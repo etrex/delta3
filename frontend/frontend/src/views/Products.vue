@@ -4,7 +4,7 @@
       <h2>商品瀏覽</h2>
       <div class="cart-info" v-if="authStore.user?.role === 'CUSTOMER'">
         <el-badge :value="cartStore.cartCount" type="primary" data-cy="cart-count">
-          <el-button @click="goToCart">
+          <el-button @click="goToCart" data-cy="cart-icon">
             <el-icon><ShoppingCart /></el-icon>
             購物車
           </el-button>
@@ -125,10 +125,10 @@
                 type="primary"
                 size="small"
                 :disabled="product.stock === 0 || product.status === 'INACTIVE'"
-                data-cy="quick-add-btn"
+                data-cy="add-to-cart-btn"
                 @click="showAddToCartDialog(product)"
               >
-                {{ product.stock === 0 ? '缺貨' : '快速加入' }}
+                {{ product.stock === 0 ? '缺貨' : '加入購物車' }}
               </el-button>
             </div>
 
@@ -208,6 +208,7 @@
       v-model="showAddDialog"
       title="加入購物車"
       width="400px"
+      data-cy="quantity-modal"
     >
       <div v-if="selectedProduct">
         <p>商品: {{ selectedProduct.name }}</p>
@@ -217,8 +218,14 @@
           <el-input-number
             v-model="addQuantity"
             :min="1"
+            :max="selectedProduct.stock"
             data-cy="quantity-input"
           />
+        </div>
+        <div v-if="cartStore.loading === false && lastAddResult" class="add-result">
+          <p v-if="lastAddResult.errorType === 'INSUFFICIENT_STOCK'" class="error-message" data-cy="error-message">
+            {{ lastAddResult.message }}
+          </p>
         </div>
       </div>
       <template #footer>
@@ -249,6 +256,9 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- Cart Drawer -->
+    <CartDrawer v-model="showCartDrawer" />
   </div>
 </template>
 
@@ -261,6 +271,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProductsStore, type Product } from '@/stores/products'
 import { useCartStore } from '@/stores/cart'
 import ProductDetailModal from '@/components/ProductDetailModal.vue'
+import CartDrawer from '@/components/CartDrawer.vue'
 import { showSuccessMessage, showErrorMessage } from '@/utils/message'
 
 const router = useRouter()
@@ -272,6 +283,7 @@ const cartStore = useCartStore()
 const showDetailModal = ref(false)
 const showAddDialog = ref(false)
 const showConfirmDialog = ref(false)
+const showCartDrawer = ref(false)
 const selectedProduct = ref<Product | null>(null)
 const confirmAction = ref('')
 const confirmProductId = ref<number | null>(null)
@@ -290,6 +302,7 @@ const pageSize = ref(10)
 
 // Add to cart state
 const addQuantity = ref(1)
+const lastAddResult = ref<any>(null)
 
 // Initialize
 onMounted(async () => {
@@ -361,12 +374,15 @@ const showAddToCartDialog = (product: Product) => {
 const handleConfirmAdd = async () => {
   if (!selectedProduct.value) return
 
+  lastAddResult.value = null
   const result = await cartStore.addToCart(selectedProduct.value.id, addQuantity.value)
+  lastAddResult.value = result
 
   if (result.success) {
     ElMessage.success(result.message)
     showSuccessMessage(result.message)
     showAddDialog.value = false
+    lastAddResult.value = null
   } else {
     ElMessage.error(result.message)
     showErrorMessage(result.message)
@@ -408,7 +424,7 @@ const handleImageError = (event: Event) => {
 }
 
 const goToCart = () => {
-  router.push('/cart')
+  showCartDrawer.value = true
 }
 </script>
 

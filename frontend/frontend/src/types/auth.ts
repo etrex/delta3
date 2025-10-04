@@ -11,9 +11,10 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  user: User
   token: string
-  message: string
+  username: string
+  role: 'CUSTOMER' | 'ADMIN'
+  email: string
 }
 
 export interface ApiError {

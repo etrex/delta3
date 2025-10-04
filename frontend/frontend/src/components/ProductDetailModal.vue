@@ -3,7 +3,7 @@
     :model-value="visible"
     :title="product?.name"
     width="600px"
-    data-cy="product-detail-modal"
+    data-cy="quantity-modal"
     @update:model-value="handleClose"
     @close="handleClose"
   >
@@ -38,7 +38,7 @@
             type="primary"
             :disabled="product.stock === 0 || loading"
             :loading="loading"
-            data-cy="add-to-cart-btn"
+            data-cy="confirm-add-btn"
             @click="handleAddToCart"
           >
             {{ product.stock === 0 ? '缺貨' : '加入購物車' }}
@@ -93,7 +93,20 @@ const handleAddToCart = async () => {
     const result = await cartStore.addToCart(props.product.id, quantity.value)
 
     if (result.success) {
-      ElMessage.success(result.message)
+      const messageInstance = ElMessage({
+        message: result.message,
+        type: 'success',
+        duration: 3000
+      })
+
+      // Add data-cy attribute to message element
+      setTimeout(() => {
+        const messageEl = document.querySelector('.el-message--success')
+        if (messageEl) {
+          messageEl.setAttribute('data-cy', 'success-message')
+        }
+      }, 0)
+
       showSuccessMessage(result.message)
       emit('close')
     } else {
