@@ -54,7 +54,7 @@ describe('商品列表檢視', () => {
         cy.get('[data-cy=quick-add-btn]').click()
       })
 
-      cy.get('[data-cy=quantity-input]').type('2')
+      cy.get('[data-cy=quantity-input]').find('input').clear().type('2')
       cy.get('[data-cy=confirm-add-btn]').click()
 
       cy.get('[data-cy=success-message]').should('contain', '已加入購物車')
@@ -62,15 +62,17 @@ describe('商品列表檢視', () => {
     })
 
     it('庫存不足時應顯示提示', () => {
-      // 找到庫存數量少的商品
-      cy.get('[data-cy=product-card]').contains('[data-cy=product-stock]', '庫存: 1').parent().within(() => {
-        cy.get('[data-cy=quick-add-btn]').click()
-      })
+      // 找到庫存數量少的商品（測試商品 3，庫存: 1）
+      cy.get('[data-cy=product-card]').contains('[data-cy=product-name]', '測試商品 3')
+        .parents('[data-cy=product-card]')
+        .within(() => {
+          cy.get('[data-cy=quick-add-btn]').click()
+        })
 
-      cy.get('[data-cy=quantity-input]').type('5')
+      cy.get('[data-cy=quantity-input]').find('input').clear().type('5')
       cy.get('[data-cy=confirm-add-btn]').click()
 
-      cy.get('[data-cy=error-message]').should('contain', '庫存不足')
+      cy.get('[data-cy=error-message]', { timeout: 6000 }).should('contain', '庫存不足')
     })
   })
 

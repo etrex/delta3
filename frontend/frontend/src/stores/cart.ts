@@ -7,6 +7,14 @@ export interface CartItem {
   quantity: number
 }
 
+export interface CartResult {
+  success: boolean
+  message: string
+  errorType?: 'PRODUCT_NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'SYSTEM_ERROR'
+  availableStock?: number
+  cartCount?: number
+}
+
 export const useCartStore = defineStore('cart', () => {
   const items = ref<CartItem[]>([])
   const loading = ref(false)
@@ -23,16 +31,27 @@ export const useCartStore = defineStore('cart', () => {
   const cartCount = computed(() => totalItems.value)
 
   // Actions
-  const addToCart = async (productId: number, quantity: number = 1) => {
+  const addToCart = async (productId: number, quantity: number = 1): Promise<CartResult> => {
     const productsStore = useProductsStore()
     const product = productsStore.getProductById(productId)
 
+    // 驗證商品存在
     if (!product) {
-      throw new Error('Product not found')
+      return {
+        success: false,
+        errorType: 'PRODUCT_NOT_FOUND',
+        message: '商品不存在'
+      }
     }
 
+    // 驗證庫存（正規業務邏輯）
     if (product.stock < quantity) {
-      throw new Error('庫存不足')
+      return {
+        success: false,
+        errorType: 'INSUFFICIENT_STOCK' as const,
+        message: `庫存不足，目前庫存只有 ${product.stock} 個`,
+        availableStock: product.stock
+      }
     }
 
     loading.value = true
@@ -45,7 +64,12 @@ export const useCartStore = defineStore('cart', () => {
       if (existingItem) {
         const totalQuantity = existingItem.quantity + quantity
         if (product.stock < totalQuantity) {
-          throw new Error('庫存不足')
+          return {
+            success: false,
+            errorType: 'INSUFFICIENT_STOCK',
+            message: `庫存不足，您購物車已有 ${existingItem.quantity} 個，最多只能再加 ${product.stock - existingItem.quantity} 個`,
+            availableStock: product.stock - existingItem.quantity
+          }
         }
         existingItem.quantity = totalQuantity
       } else {
@@ -60,7 +84,15 @@ export const useCartStore = defineStore('cart', () => {
 
       return {
         success: true,
-        message: '已加入購物車'
+        message: '已加入購物車',
+        cartCount: totalItems.value
+      }
+    } catch (error) {
+      // 真正的系統錯誤才在這裡處理
+      return {
+        success: false,
+        errorType: 'SYSTEM_ERROR',
+        message: '系統錯誤，請稍後再試'
       }
     } finally {
       loading.value = false

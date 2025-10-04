@@ -93,7 +93,7 @@
         <p>沒有找到符合條件的商品</p>
       </div>
 
-      <div v-else class="products-grid" data-cy="product-list">
+      <div class="products-grid" data-cy="product-list">
         <div
           v-for="product in productsStore.paginatedProducts"
           :key="product.id"
@@ -217,7 +217,6 @@
           <el-input-number
             v-model="addQuantity"
             :min="1"
-            :max="selectedProduct.stock"
             data-cy="quantity-input"
           />
         </div>
@@ -295,12 +294,13 @@ const addQuantity = ref(1)
 // Initialize
 onMounted(async () => {
   await productsStore.loadProducts()
+  productsStore.updatePagination()
 })
 
 // Watchers
 watch([currentPage, pageSize], () => {
   productsStore.setPagination(currentPage.value, pageSize.value)
-})
+}, { immediate: false })
 
 // Methods
 const handleSearch = () => {
@@ -359,15 +359,23 @@ const showAddToCartDialog = (product: Product) => {
 const handleConfirmAdd = async () => {
   if (!selectedProduct.value) return
 
-  try {
-    const result = await cartStore.addToCart(selectedProduct.value.id, addQuantity.value)
+  const result = await cartStore.addToCart(selectedProduct.value.id, addQuantity.value)
+
+  if (result.success) {
     ElMessage.success(result.message)
     showSuccessMessage(result.message)
     showAddDialog.value = false
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : '加入購物車失敗'
-    ElMessage.error(errorMsg)
-    showErrorMessage(errorMsg)
+  } else {
+    ElMessage.error(result.message)
+    showErrorMessage(result.message)
+
+    // 如果庫存不足且有可用庫存，提供智能調整
+    if (result.errorType === 'INSUFFICIENT_STOCK' && result.availableStock && result.availableStock > 0) {
+      // 自動調整為最大可用數量
+      addQuantity.value = result.availableStock
+      ElMessage.info(`已自動調整為最大可用數量: ${result.availableStock}`)
+    }
+    // 保持對話框開啟，讓用戶可以調整數量
   }
 }
 

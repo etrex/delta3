@@ -1,10 +1,11 @@
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="visible"
     :title="product?.name"
     width="600px"
     data-cy="product-detail-modal"
-    @close="$emit('close')"
+    @update:model-value="handleClose"
+    @close="handleClose"
   >
     <div v-if="product" class="product-detail">
       <div class="product-image">
@@ -80,19 +81,32 @@ const handleImageError = (event: Event) => {
   target.src = '/images/placeholder.jpg'
 }
 
+const handleClose = () => {
+  emit('close')
+}
+
 const handleAddToCart = async () => {
   if (!props.product) return
 
   loading.value = true
   try {
     const result = await cartStore.addToCart(props.product.id, quantity.value)
-    ElMessage.success(result.message)
-    showSuccessMessage(result.message)
-    emit('close')
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : '加入購物車失敗'
-    ElMessage.error(errorMsg)
-    showErrorMessage(errorMsg)
+
+    if (result.success) {
+      ElMessage.success(result.message)
+      showSuccessMessage(result.message)
+      emit('close')
+    } else {
+      ElMessage.error(result.message)
+      showErrorMessage(result.message)
+
+      // 如果庫存不足且有可用庫存，提供智能調整
+      if (result.errorType === 'INSUFFICIENT_STOCK' && result.availableStock && result.availableStock > 0) {
+        quantity.value = result.availableStock
+        ElMessage.info(`已自動調整為最大可用數量: ${result.availableStock}`)
+      }
+      // 保持對話框開啟，讓用戶可以調整數量
+    }
   } finally {
     loading.value = false
   }
