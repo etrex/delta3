@@ -8,6 +8,34 @@
 describe('建立訂單功能', () => {
   beforeEach(() => {
     cy.loginAsCustomer()
+
+    // 為測試創建商品資料
+    cy.task('db:seed:products', [
+      {
+        name: '測試商品1',
+        description: '這是測試商品1的描述',
+        price: 99.99,
+        stock: 100,
+        stockThreshold: 10,
+        status: 'ACTIVE'
+      },
+      {
+        name: '測試商品2',
+        description: '這是測試商品2的描述',
+        price: 149.99,
+        stock: 50,
+        stockThreshold: 5,
+        status: 'ACTIVE'
+      },
+      {
+        name: '測試商品3',
+        description: '用於測試庫存限制',
+        price: 199.99,
+        stock: 5,
+        stockThreshold: 5,
+        status: 'ACTIVE'
+      }
+    ])
   })
 
   describe('購物車功能', () => {

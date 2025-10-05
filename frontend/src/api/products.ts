@@ -6,22 +6,22 @@ import type { Product } from '@/types'
 
 export default {
   getProducts(params?: any) {
-    return axios.get('/products', { params })
+    return axios.get('/product', { params })
   },
 
   getProduct(id: number) {
-    return axios.get(`/products/${id}`)
+    return axios.get(`/product/${id}`)
   },
 
   createProduct(product: Product) {
-    return axios.post('/products', product)
+    return axios.post('/product', product)
   },
 
   updateProduct(id: number, product: Product) {
-    return axios.put(`/products/${id}`, product)
+    return axios.put(`/product/${id}`, product)
   },
 
   deleteProduct(id: number) {
-    return axios.delete(`/products/${id}`)
+    return axios.delete(`/product/${id}`)
   }
 }

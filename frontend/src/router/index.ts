@@ -29,6 +29,16 @@ const router = createRouter({
           component: () => import('@/views/Products.vue')
         },
         {
+          path: 'cart',
+          name: 'Cart',
+          component: () => import('@/views/Cart.vue')
+        },
+        {
+          path: 'checkout',
+          name: 'Checkout',
+          component: () => import('@/views/Checkout.vue')
+        },
+        {
           path: 'orders',
           name: 'Orders',
           component: () => import('@/views/Orders.vue')
@@ -39,9 +49,21 @@ const router = createRouter({
           component: () => import('@/views/OrderDetail.vue')
         },
         {
-          path: 'shipping',
+          path: 'admin/orders',
+          name: 'AdminOrders',
+          component: () => import('@/views/admin/Orders.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'admin/shipping',
           name: 'Shipping',
-          component: () => import('@/views/Shipping.vue'),
+          component: () => import('@/views/admin/Shipping.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'admin/shipping/reports',
+          name: 'ShippingReports',
+          component: () => import('@/views/admin/ShippingReports.vue'),
           meta: { requiresAdmin: true }
         }
       ]

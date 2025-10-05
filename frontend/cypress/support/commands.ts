@@ -140,13 +140,25 @@ Cypress.Commands.add('loginAsAdmin', () => {
 // @ts-ignore
 Cypress.Commands.add('addProductToCart', (productName: string, quantity: number) => {
   cy.visit('/products')
-  cy.get('[data-cy=product-card]').contains(productName).parent().within(() => {
-    cy.get('[data-cy=add-to-cart-btn]').click()
-  })
+
+  // Find the product card containing the product name and click add to cart
+  cy.get('[data-cy=product-card]')
+    .filter(`:contains("${productName}")`)
+    .first()
+    .within(() => {
+      cy.get('[data-cy=add-to-cart-btn]').click()
+    })
+
+  // Fill in quantity and confirm
   cy.get('[data-cy=quantity-modal]').should('be.visible')
   cy.get('[data-cy=quantity-input]').clear().type(quantity.toString())
   cy.get('[data-cy=confirm-add-btn]').click()
-  cy.get('[data-cy=success-message]').should('contain', '已加入購物車')
+
+  // Wait for success message to appear
+  cy.get('[data-cy=success-message]').should('be.visible').should('contain', '已加入購物車')
+
+  // Wait for modal to close
+  cy.get('[data-cy=quantity-modal]').should('not.be.visible')
 })
 
 // @ts-ignore

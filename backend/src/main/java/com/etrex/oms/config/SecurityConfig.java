@@ -20,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -36,6 +37,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configure(http)) // Enable CORS
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**", "/h2-console/**", "/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll() // 測試 endpoint（只在 test/dev profile 啟用）
+                        .requestMatchers(HttpMethod.GET, "/api/product", "/api/product/*").permitAll() // Allow GET products without authentication
                         .requestMatchers("/api/product/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/orders/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
