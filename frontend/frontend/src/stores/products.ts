@@ -266,10 +266,36 @@ export const useProductsStore = defineStore('products', () => {
   const loadProducts = async () => {
     loading.value = true
     try {
+      // Build query params based on filters
+      const params: any = {}
+
+      // For ACTIVE products, explicitly set status
+      // For showing inactive products, we need to load both statuses separately
+      // since backend doesn't support "ALL" status
+      if (!filter.value.showInactive) {
+        params.status = 'ACTIVE'
+      }
+
       // Call real API
-      const response = await api.get<any>('/api/product')
-      // API returns paginated format: { content: [...], totalElements: n }
-      products.value = response.data.content || response.data
+      const response = await api.get<any>('/api/product', { params })
+
+      // If showInactive is true and we only got ACTIVE products,
+      // we need to also fetch INACTIVE products
+      let allProducts = response.data.content || response.data
+
+      if (filter.value.showInactive) {
+        try {
+          const inactiveResponse = await api.get<any>('/api/product', {
+            params: { status: 'INACTIVE' }
+          })
+          const inactiveProducts = inactiveResponse.data.content || inactiveResponse.data
+          allProducts = [...allProducts, ...inactiveProducts]
+        } catch (error) {
+          console.error('Failed to load inactive products:', error)
+        }
+      }
+
+      products.value = allProducts
 
       // Force update pagination after products are loaded
       setTimeout(() => {
@@ -293,10 +319,17 @@ export const useProductsStore = defineStore('products', () => {
     }
   }
 
-  const setFilter = (newFilter: Partial<ProductFilter>) => {
+  const setFilter = async (newFilter: Partial<ProductFilter>) => {
+    const oldShowInactive = filter.value.showInactive
     filter.value = { ...filter.value, ...newFilter }
     pagination.value.currentPage = 1 // Reset to first page when filtering
-    updatePagination()
+
+    // If showInactive changed, reload products from API
+    if ('showInactive' in newFilter && newFilter.showInactive !== oldShowInactive) {
+      await loadProducts()
+    } else {
+      updatePagination()
+    }
   }
 
   const setPagination = (page: number, pageSize?: number) => {
@@ -319,15 +352,24 @@ export const useProductsStore = defineStore('products', () => {
   }
 
   const toggleProductStatus = async (productId: number) => {
-    // Update in mockProducts (the source of truth)
-    const product = mockProducts.find(p => p.id === productId)
-    if (product) {
-      product.status = product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 300))
-      // Update the reactive products array
-      products.value = [...mockProducts]
-      updatePagination()
+    try {
+      // Get current product to determine new status
+      const product = products.value.find(p => p.id === productId)
+      if (!product) return
+
+      const newStatus = product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+
+      // Call real API to update product status
+      await api.put(`/api/product/${productId}`, {
+        ...product,
+        status: newStatus
+      })
+
+      // Reload products to get fresh data from server
+      await loadProducts()
+    } catch (error) {
+      console.error('Failed to toggle product status:', error)
+      throw error
     }
   }
 
@@ -340,56 +382,40 @@ export const useProductsStore = defineStore('products', () => {
   const createProduct = async (productData: ProductFormData) => {
     loading.value = true
     try {
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      const newProduct: Product = {
-        id: Math.max(...mockProducts.map(p => p.id)) + 1,
+      // Call real API to create product
+      const response = await api.post('/api/product', {
         name: productData.name,
-        price: productData.price,
         description: productData.description,
+        price: productData.price,
         stock: productData.stock,
-        image: '/images/placeholder.jpg',
         status: productData.status,
-        category: productData.category,
-        createdAt: new Date().toISOString(),
         stockThreshold: productData.stockThreshold || 5
-      }
+      })
 
-      mockProducts.push(newProduct)
-      products.value = [...mockProducts]
-      updatePagination()
+      // Reload products to get fresh data from server
+      await loadProducts()
 
-      return { success: true, message: '商品已成功創建', product: newProduct }
+      return { success: true, message: '商品已成功創建', product: response.data }
     } catch (error) {
+      console.error('Failed to create product:', error)
       return { success: false, message: '創建商品失敗' }
     } finally {
       loading.value = false
     }
   }
 
-  const updateProduct = async (id: number, productData: Partial<ProductFormData>) => {
+  const updateProduct = async (id: number, productData: Partial<Product>) => {
     loading.value = true
     try {
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Call real API to update product
+      await api.put(`/api/product/${id}`, productData)
 
-      const productIndex = mockProducts.findIndex(p => p.id === id)
-      if (productIndex === -1) {
-        return { success: false, message: '商品不存在' }
-      }
-
-      const product = mockProducts[productIndex]
-      mockProducts[productIndex] = {
-        ...product,
-        ...productData,
-        price: productData.price !== undefined ? productData.price : product.price,
-        stock: productData.stock !== undefined ? productData.stock : product.stock
-      }
-
-      products.value = [...mockProducts]
-      updatePagination()
+      // Reload products to get fresh data from server
+      await loadProducts()
 
       return { success: true, message: '商品已成功更新' }
     } catch (error) {
+      console.error('Failed to update product:', error)
       return { success: false, message: '更新商品失敗' }
     } finally {
       loading.value = false
@@ -416,28 +442,33 @@ export const useProductsStore = defineStore('products', () => {
     }
   }
 
-  const adjustStock = async (id: number, adjustment: StockAdjustment) => {
+  const adjustStock = async (id: number, adjustment: number, reason: string) => {
     loading.value = true
     try {
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      const product = mockProducts.find(p => p.id === id)
+      // Get current product
+      const product = products.value.find(p => p.id === id)
       if (!product) {
         return { success: false, message: '商品不存在' }
       }
 
-      const adjustmentAmount = adjustment.type === 'increase' ? adjustment.quantity : -adjustment.quantity
-      const newStock = product.stock + adjustmentAmount
+      const newStock = product.stock + adjustment
 
       if (newStock < 0) {
         return { success: false, message: '庫存不能為負數' }
       }
 
-      product.stock = newStock
-      products.value = [...mockProducts]
+      // Call real API to update product stock
+      await api.put(`/api/product/${id}`, {
+        ...product,
+        stock: newStock
+      })
+
+      // Reload products to get fresh data from server
+      await loadProducts()
 
       return { success: true, message: '庫存已調整', newStock }
     } catch (error) {
+      console.error('Failed to adjust stock:', error)
       return { success: false, message: '調整庫存失敗' }
     } finally {
       loading.value = false

@@ -125,7 +125,7 @@
                 type="primary"
                 size="small"
                 :disabled="product.stock === 0 || product.status === 'INACTIVE'"
-                data-cy="quick-add-btn"
+                data-cy="add-to-cart-btn"
                 @click="showAddToCartDialog(product)"
               >
                 {{ product.stock === 0 ? '缺貨' : '加入購物車' }}
@@ -134,7 +134,7 @@
 
             <!-- Admin actions -->
             <div v-if="authStore.user?.role === 'ADMIN'" class="admin-actions" @click.stop>
-              <el-button size="small" data-cy="edit-product-btn">
+              <el-button size="small" data-cy="edit-product-btn" @click="handleEditProduct(product)">
                 編輯
               </el-button>
               <el-button
@@ -218,12 +218,11 @@
           <el-input-number
             v-model="addQuantity"
             :min="1"
-            :max="selectedProduct.stock"
             data-cy="quantity-input"
           />
         </div>
-        <div v-if="lastAddResult" class="add-result">
-          <p v-if="lastAddResult.errorType === 'INSUFFICIENT_STOCK'" class="error-message" data-cy="error-message">
+        <div v-if="lastAddResult && !lastAddResult.success" class="add-result">
+          <p class="error-message" data-cy="error-message">
             {{ lastAddResult.message }}
           </p>
         </div>
@@ -306,10 +305,9 @@ const lastAddResult = ref<any>(null)
 
 // Initialize
 onMounted(async () => {
-  // Ensure showInactive is false for customer view
+  // Ensure showInactive is false for customer view and load products
   productsStore.setFilter({ showInactive: false })
   await productsStore.loadProducts()
-  productsStore.updatePagination()
 })
 
 // Watchers
@@ -379,22 +377,10 @@ const handleConfirmAdd = async () => {
   lastAddResult.value = result
 
   if (result.success) {
-    const successMsg = ElMessage.success(result.message)
-    // Add data-cy to success message
-    setTimeout(() => {
-      const msgEl = document.querySelector('.el-message--success')
-      if (msgEl) msgEl.setAttribute('data-cy', 'success-message')
-    }, 0)
     showSuccessMessage(result.message)
     showAddDialog.value = false
     lastAddResult.value = null
   } else {
-    // Show error toast and add data-cy attribute
-    const errorMsg = ElMessage.error(result.message)
-    setTimeout(() => {
-      const msgEl = document.querySelector('.el-message--error')
-      if (msgEl) msgEl.setAttribute('data-cy', 'error-message')
-    }, 0)
     showErrorMessage(result.message)
 
     // 如果庫存不足且有可用庫存，提供智能調整
@@ -405,6 +391,10 @@ const handleConfirmAdd = async () => {
     }
     // 保持對話框開啟，讓用戶可以調整數量
   }
+}
+
+const handleEditProduct = (product: Product) => {
+  router.push(`/admin/products/${product.id}/edit`)
 }
 
 const handleToggleStatus = (product: Product) => {

@@ -45,6 +45,7 @@ public class ProductService {
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setStock(productDTO.getStock());
+        product.setStockThreshold(productDTO.getStockThreshold());
         product.setStatus(Product.Status.valueOf(productDTO.getStatus()));
 
         Product saved = productRepository.save(product);
@@ -60,6 +61,9 @@ public class ProductService {
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setStock(productDTO.getStock());
+        if (productDTO.getStockThreshold() != null) {
+            product.setStockThreshold(productDTO.getStockThreshold());
+        }
         product.setStatus(Product.Status.valueOf(productDTO.getStatus()));
 
         Product updated = productRepository.save(product);
@@ -94,6 +98,7 @@ public class ProductService {
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setStock(product.getStock());
+        dto.setStockThreshold(product.getStockThreshold());
         dto.setStatus(product.getStatus().name());
         dto.setCreatedAt(product.getCreatedAt());
         return dto;

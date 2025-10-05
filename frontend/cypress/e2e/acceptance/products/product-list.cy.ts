@@ -61,18 +61,28 @@ describe('商品列表檢視', () => {
       cy.get('[data-cy=cart-count]').should('contain', '2')
     })
 
-    it.skip('庫存不足時應顯示提示', () => {
-      // 找到庫存數量少的商品（測試商品1，庫存: 10）
-      cy.get('[data-cy=product-card]').contains('[data-cy=product-name]', '測試商品1')
-        .parents('[data-cy=product-card]')
-        .within(() => {
-          cy.get('[data-cy=quick-add-btn]').click()
-        })
+    it('庫存不足時應顯示提示', () => {
+      // 確保商品列表已載入
+      cy.get('[data-cy=product-list]').should('be.visible')
+      cy.get('[data-cy=product-card]').should('have.length.at.least', 1)
 
-      cy.get('[data-cy=quantity-input]').find('input').clear().type('50')
-      cy.get('[data-cy=confirm-add-btn]').click()
+      // 找到任一商品，檢查其庫存並嘗試超量添加
+      cy.get('[data-cy=product-card]').first().within(() => {
+        cy.get('[data-cy=product-stock]').invoke('text').as('stockText')
+        cy.get('[data-cy=quick-add-btn]').click()
+      })
 
-      cy.get('[data-cy=error-message]', { timeout: 6000 }).should('be.visible').and('contain', '庫存不足')
+      // 計算超量數字並輸入
+      cy.get('@stockText').then((stockText) => {
+        const stock = parseInt((stockText as string).match(/\d+/)?.[0] || '0')
+        const overStock = stock + 10
+
+        cy.get('[data-cy=quantity-input]').find('input').clear().type(overStock.toString())
+        cy.get('[data-cy=confirm-add-btn]').click()
+
+        // 驗證錯誤訊息
+        cy.get('[data-cy=error-message]', { timeout: 6000 }).should('be.visible').and('contain', '庫存不足')
+      })
     })
   })
 
@@ -83,6 +93,15 @@ describe('商品列表檢視', () => {
     })
 
     it('Admin 可以看到所有商品（包含下架）', () => {
+      // 先下架一個商品
+      cy.get('[data-cy=product-card]').first().within(() => {
+        cy.get('[data-cy=toggle-status-btn]').click()
+      })
+      cy.get('[data-cy=confirm-dialog]').should('be.visible')
+      cy.get('[data-cy=confirm-btn]').click()
+      cy.wait(500) // 等待狀態更新
+
+      // 開啟顯示下架商品
       cy.get('[data-cy=show-inactive-toggle]').should('be.visible')
       cy.get('[data-cy=show-inactive-toggle]').click()
 

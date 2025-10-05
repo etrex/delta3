@@ -32,6 +32,9 @@ public class Product {
     @Column(nullable = false)
     private Integer stock;
 
+    @Column(name = "stock_threshold")
+    private Integer stockThreshold = 5;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.ACTIVE;

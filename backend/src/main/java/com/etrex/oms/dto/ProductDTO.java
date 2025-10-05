@@ -29,6 +29,9 @@ public class ProductDTO {
     @Min(0)
     private Integer stock;
 
+    @Min(0)
+    private Integer stockThreshold = 5;
+
     @Pattern(regexp = "ACTIVE|INACTIVE")
     private String status = "ACTIVE";
 
