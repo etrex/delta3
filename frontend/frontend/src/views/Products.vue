@@ -125,7 +125,7 @@
                 type="primary"
                 size="small"
                 :disabled="product.stock === 0 || product.status === 'INACTIVE'"
-                data-cy="add-to-cart-btn"
+                data-cy="quick-add-btn"
                 @click="showAddToCartDialog(product)"
               >
                 {{ product.stock === 0 ? '缺貨' : '加入購物車' }}
@@ -222,7 +222,7 @@
             data-cy="quantity-input"
           />
         </div>
-        <div v-if="cartStore.loading === false && lastAddResult" class="add-result">
+        <div v-if="lastAddResult" class="add-result">
           <p v-if="lastAddResult.errorType === 'INSUFFICIENT_STOCK'" class="error-message" data-cy="error-message">
             {{ lastAddResult.message }}
           </p>
@@ -379,12 +379,22 @@ const handleConfirmAdd = async () => {
   lastAddResult.value = result
 
   if (result.success) {
-    ElMessage.success(result.message)
+    const successMsg = ElMessage.success(result.message)
+    // Add data-cy to success message
+    setTimeout(() => {
+      const msgEl = document.querySelector('.el-message--success')
+      if (msgEl) msgEl.setAttribute('data-cy', 'success-message')
+    }, 0)
     showSuccessMessage(result.message)
     showAddDialog.value = false
     lastAddResult.value = null
   } else {
-    ElMessage.error(result.message)
+    // Show error toast and add data-cy attribute
+    const errorMsg = ElMessage.error(result.message)
+    setTimeout(() => {
+      const msgEl = document.querySelector('.el-message--error')
+      if (msgEl) msgEl.setAttribute('data-cy', 'error-message')
+    }, 0)
     showErrorMessage(result.message)
 
     // 如果庫存不足且有可用庫存，提供智能調整
@@ -607,6 +617,16 @@ const goToCart = () => {
   align-items: center;
   gap: 10px;
   margin: 15px 0;
+}
+
+.add-result {
+  margin-top: 10px;
+}
+
+.error-message {
+  color: #f56c6c;
+  font-size: 14px;
+  margin: 5px 0;
 }
 
 @media (max-width: 768px) {

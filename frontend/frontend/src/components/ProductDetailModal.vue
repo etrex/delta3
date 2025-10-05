@@ -3,7 +3,7 @@
     :model-value="visible"
     :title="product?.name"
     width="600px"
-    data-cy="quantity-modal"
+    data-cy="product-detail-modal"
     @update:model-value="handleClose"
     @close="handleClose"
   >
@@ -38,7 +38,7 @@
             type="primary"
             :disabled="product.stock === 0 || loading"
             :loading="loading"
-            data-cy="confirm-add-btn"
+            data-cy="add-to-cart-btn"
             @click="handleAddToCart"
           >
             {{ product.stock === 0 ? '缺貨' : '加入購物車' }}

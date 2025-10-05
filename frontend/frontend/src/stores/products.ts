@@ -267,8 +267,9 @@ export const useProductsStore = defineStore('products', () => {
     loading.value = true
     try {
       // Call real API
-      const response = await api.get<Product[]>('/api/product')
-      products.value = response.data
+      const response = await api.get<any>('/api/product')
+      // API returns paginated format: { content: [...], totalElements: n }
+      products.value = response.data.content || response.data
 
       // Force update pagination after products are loaded
       setTimeout(() => {
@@ -331,8 +332,8 @@ export const useProductsStore = defineStore('products', () => {
   }
 
   const getProductById = (id: number) => {
-    // 從 mockProducts 查找，因為這是實際的資料來源
-    return mockProducts.find(p => p.id === id)
+    // 從 products 查找（API 載入的真實資料）
+    return products.value.find(p => p.id === id)
   }
 
   // CRUD Operations
