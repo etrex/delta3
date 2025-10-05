@@ -139,7 +139,15 @@ Cypress.Commands.add('loginAsAdmin', () => {
 
 // @ts-ignore
 Cypress.Commands.add('addProductToCart', (productName: string, quantity: number) => {
-  cy.visit('/products')
+  // Only visit if not already on products page
+  cy.url().then(url => {
+    if (!url.includes('/products')) {
+      cy.visit('/products')
+    }
+  })
+
+  // Wait for products to load
+  cy.get('[data-cy=product-card]').should('have.length.at.least', 1)
 
   // Find the product card containing the product name and click add to cart
   cy.get('[data-cy=product-card]')

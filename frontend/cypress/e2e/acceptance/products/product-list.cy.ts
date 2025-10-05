@@ -10,6 +10,35 @@ describe('商品列表檢視', () => {
   describe('Customer 檢視商品', () => {
     beforeEach(() => {
       cy.loginAsCustomer()
+
+      // 為這個測試套件創建需要的商品
+      cy.task('db:seed:products', [
+        {
+          name: 'MacBook Pro',
+          description: '高性能筆記型電腦',
+          price: 1999.99,
+          stock: 10,
+          stockThreshold: 5,
+          status: 'ACTIVE'
+        },
+        {
+          name: 'iPhone 15',
+          description: '最新款智慧型手機',
+          price: 999.99,
+          stock: 50,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        },
+        {
+          name: 'AirPods Pro',
+          description: '降噪耳機',
+          price: 249.99,
+          stock: 5,
+          stockThreshold: 5,
+          status: 'ACTIVE'
+        }
+      ])
+
       cy.visit('/products')
     })
 
@@ -89,6 +118,25 @@ describe('商品列表檢視', () => {
   describe('Admin 檢視商品', () => {
     beforeEach(() => {
       cy.loginAsAdmin()
+
+      // 為 Admin 測試創建商品（包含上架和下架）
+      cy.task('db:seed:products', [
+        {
+          name: 'Active Product',
+          description: '上架商品',
+          price: 100,
+          stock: 20,
+          status: 'ACTIVE'
+        },
+        {
+          name: 'Inactive Product',
+          description: '下架商品',
+          price: 200,
+          stock: 10,
+          status: 'INACTIVE'
+        }
+      ])
+
       cy.visit('/products')
     })
 
@@ -132,13 +180,65 @@ describe('商品列表檢視', () => {
   describe('商品搜尋與篩選', () => {
     beforeEach(() => {
       cy.loginAsCustomer()
+
+      // 創建多樣化商品用於搜尋和篩選測試
+      cy.task('db:seed:products', [
+        {
+          name: 'iPhone 15 Pro',
+          description: '旗艦手機',
+          price: 999,
+          stock: 30,
+          category: '電子產品',
+          status: 'ACTIVE'
+        },
+        {
+          name: 'MacBook Air',
+          description: '輕薄筆電',
+          price: 1299,
+          stock: 20,
+          category: '電子產品',
+          status: 'ACTIVE'
+        },
+        {
+          name: '咖啡豆',
+          description: '精選咖啡',
+          price: 150,
+          stock: 100,
+          category: '食品',
+          status: 'ACTIVE'
+        },
+        {
+          name: '牛奶',
+          description: '鮮乳',
+          price: 80,
+          stock: 50,
+          category: '食品',
+          status: 'ACTIVE'
+        },
+        {
+          name: 'AirPods Max',
+          description: '頭戴式耳機',
+          price: 549,
+          stock: 15,
+          category: '電子產品',
+          status: 'ACTIVE'
+        }
+      ])
+
       cy.visit('/products')
     })
 
     it('應可以搜尋商品', () => {
-      // 簡單驗證搜尋功能存在並可執行
-      cy.get('[data-cy=search-input]').should('be.visible')
-      cy.get('[data-cy=search-btn]').should('be.visible')
+      // 搜尋 iPhone
+      cy.get('[data-cy=search-input]').type('iPhone')
+      cy.get('[data-cy=search-btn]').click()
+      cy.wait(500)
+
+      // 應該只顯示包含 iPhone 的商品
+      cy.get('[data-cy=product-card]').should('have.length.at.least', 1)
+      cy.get('[data-cy=product-card]').each(($card) => {
+        cy.wrap($card).should('contain', 'iPhone')
+      })
     })
 
     it('應可以按價格範圍篩選', () => {
@@ -177,6 +277,20 @@ describe('商品列表檢視', () => {
   describe('分頁功能', () => {
     beforeEach(() => {
       cy.loginAsCustomer()
+
+      // 創建足夠多的商品以測試分頁（15個商品）
+      const products = []
+      for (let i = 1; i <= 15; i++) {
+        products.push({
+          name: `測試商品 ${i}`,
+          description: `第 ${i} 個測試商品`,
+          price: 100 + i * 10,
+          stock: 50,
+          status: 'ACTIVE'
+        })
+      }
+      cy.task('db:seed:products', products)
+
       cy.visit('/products')
     })
 
@@ -186,18 +300,11 @@ describe('商品列表檢視', () => {
     })
 
     it('應可以切換頁面', () => {
-      // 先設定較小的頁面大小以確保有多頁
-      cy.get('[data-cy=page-size-select]').select('10')
-      cy.wait(500)
-
-      // 如果有下一頁按鈕且未禁用，則點擊
-      cy.get('[data-cy=next-page-btn]').then($btn => {
-        if (!$btn.is(':disabled')) {
-          cy.get('[data-cy=next-page-btn]').click()
-          cy.get('[data-cy=page-info]').should('contain', '第 2 頁')
-          cy.get('[data-cy=product-list]').should('be.visible')
-        }
-      })
+      // 有15個商品，預設每頁10個，應該有2頁
+      cy.get('[data-cy=next-page-btn]').should('not.be.disabled')
+      cy.get('[data-cy=next-page-btn]').click()
+      cy.get('[data-cy=page-info]').should('contain', '第 2 頁')
+      cy.get('[data-cy=product-list]').should('be.visible')
     })
 
     it('應可以選擇每頁顯示數量', () => {

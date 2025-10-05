@@ -10,6 +10,7 @@ describe('商品管理功能（Admin）', () => {
 
   describe('新增商品', () => {
     beforeEach(() => {
+      // 新增商品不需要預先創建商品
       cy.visit('/admin/products/new')
     })
 
@@ -73,6 +74,18 @@ describe('商品管理功能（Admin）', () => {
 
   describe('編輯商品', () => {
     beforeEach(() => {
+      // 創建一個商品用於編輯測試
+      cy.task('db:seed:products', [
+        {
+          name: '待編輯商品',
+          description: '這是待編輯的商品',
+          price: 299.99,
+          stock: 50,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        }
+      ])
+
       cy.visit('/admin/products')
       cy.get('[data-cy=product-card]').first().find('[data-cy=edit-product-btn]').click()
     })
@@ -102,6 +115,26 @@ describe('商品管理功能（Admin）', () => {
 
   describe('商品上下架管理', () => {
     beforeEach(() => {
+      // 創建測試商品用於上下架管理
+      cy.task('db:seed:products', [
+        {
+          name: '上架商品1',
+          description: '測試用上架商品',
+          price: 199.99,
+          stock: 100,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        },
+        {
+          name: '上架商品2',
+          description: '測試用上架商品2',
+          price: 299.99,
+          stock: 50,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        }
+      ])
+
       cy.visit('/admin/products')
     })
 
@@ -129,11 +162,15 @@ describe('商品管理功能（Admin）', () => {
 
       // 重新載入頁面確保數據是最新的
       cy.reload()
-      cy.wait(1000)
+
+      // 等待頁面載入完成，應該看到至少一個 ACTIVE 產品
+      cy.get('[data-cy=product-card]', { timeout: 10000 }).should('have.length.at.least', 1)
 
       // 顯示所有商品包含下架
       cy.get('[data-cy=show-inactive-toggle]').should('be.visible').click()
-      cy.wait(1000) // 給足夠時間加載下架商品
+
+      // 等待資料重新載入，應該看到更多商品（包含下架的）
+      cy.wait(2000)
 
       // 驗證有商品卡片顯示
       cy.get('[data-cy=product-card]').should('have.length.at.least', 1)
@@ -177,6 +214,34 @@ describe('商品管理功能（Admin）', () => {
 
   describe('商品列表管理檢視', () => {
     beforeEach(() => {
+      // 創建多個測試商品用於列表管理
+      cy.task('db:seed:products', [
+        {
+          name: '列表商品1',
+          description: '測試商品1',
+          price: 99.99,
+          stock: 100,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        },
+        {
+          name: '列表商品2',
+          description: '測試商品2',
+          price: 199.99,
+          stock: 80,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        },
+        {
+          name: '列表商品3',
+          description: '測試商品3',
+          price: 299.99,
+          stock: 60,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        }
+      ])
+
       cy.visit('/admin/products')
     })
 
@@ -216,6 +281,34 @@ describe('商品管理功能（Admin）', () => {
 
   describe('庫存檢查功能', () => {
     beforeEach(() => {
+      // 創建低庫存商品用於測試警告功能
+      cy.task('db:seed:products', [
+        {
+          name: '低庫存商品1',
+          description: '庫存不足的商品',
+          price: 149.99,
+          stock: 3,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        },
+        {
+          name: '低庫存商品2',
+          description: '庫存不足的商品2',
+          price: 249.99,
+          stock: 5,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        },
+        {
+          name: '正常庫存商品',
+          description: '庫存正常的商品',
+          price: 199.99,
+          stock: 50,
+          stockThreshold: 10,
+          status: 'ACTIVE'
+        }
+      ])
+
       cy.visit('/admin/products')
     })
 
