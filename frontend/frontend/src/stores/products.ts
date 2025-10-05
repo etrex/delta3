@@ -195,7 +195,7 @@ export const useProductsStore = defineStore('products', () => {
 
   // Computed properties
   const filteredProducts = computed(() => {
-    let result = [...mockProducts]
+    let result = [...products.value]
 
     // Filter by status (inactive products only visible to admin if enabled)
     if (!filter.value.showInactive) {
