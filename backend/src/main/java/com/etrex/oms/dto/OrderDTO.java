@@ -12,6 +12,7 @@ import java.util.List;
 @Data
 public class OrderDTO {
     private Long id;
+    private String orderNo;
     private Long customerId;
     private String customerName;
     private BigDecimal totalAmount;
@@ -20,4 +21,5 @@ public class OrderDTO {
     private LocalDateTime updatedAt;
     private List<OrderItemDTO> items;
     private List<PaymentDTO> payments;
+    private ShippingDTO shipping;
 }

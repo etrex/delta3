@@ -30,6 +30,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderEventRepository orderEventRepository;
     private final PaymentRepository paymentRepository;
+    private final ShippingRepository shippingRepository;
     private final ProductService productService;
 
     public OrderDTO createOrder(CreateOrderRequest request) {
@@ -37,6 +38,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
         Order order = new Order();
+        order.setOrderNo(generateOrderNo());
         order.setCustomer(customer);
         order.setStatus(Order.Status.CREATED);
 
@@ -209,9 +211,108 @@ public class OrderService {
         orderEventRepository.save(event);
     }
 
+    public OrderDTO getOrderByOrderNo(String orderNo) {
+        Order order = orderRepository.findByOrderNoWithItems(orderNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        // Load payments and shipping separately
+        Order orderWithPayments = orderRepository.findByOrderNoWithPayments(orderNo).orElse(order);
+        order.setPayments(orderWithPayments.getPayments());
+
+        return convertToDTO(order);
+    }
+
+    public OrderDTO approveOrder(String orderNo) {
+        Order order = orderRepository.findByOrderNo(orderNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != Order.Status.PAID) {
+            throw new BusinessException("Only paid orders can be approved");
+        }
+
+        order.setStatus(Order.Status.APPROVED);
+
+        // Create or update shipping
+        Shipping shipping = order.getShipping();
+        if (shipping == null) {
+            shipping = new Shipping();
+            shipping.setOrder(order);
+            order.setShipping(shipping);
+        }
+        shipping.setStatus(Shipping.Status.APPROVED);
+        shippingRepository.save(shipping);
+
+        Order savedOrder = orderRepository.save(order);
+        createOrderEvent(savedOrder, "APPROVED", "Order approved for shipping");
+
+        return convertToDTO(savedOrder);
+    }
+
+    public OrderDTO shipOrderWithDetails(String orderNo, String trackingNumber, String carrier,
+                                         LocalDateTime estimatedDelivery, String notes) {
+        Order order = orderRepository.findByOrderNo(orderNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != Order.Status.PAID && order.getStatus() != Order.Status.APPROVED) {
+            throw new BusinessException("Order cannot be shipped in current status: " + order.getStatus());
+        }
+
+        order.setStatus(Order.Status.SHIPPED);
+
+        // Create or update shipping
+        Shipping shipping = order.getShipping();
+        if (shipping == null) {
+            shipping = new Shipping();
+            shipping.setOrder(order);
+            order.setShipping(shipping);
+        }
+        shipping.setStatus(Shipping.Status.SHIPPED);
+        shipping.setTrackingNumber(trackingNumber);
+        shipping.setCarrier(carrier);
+        shipping.setEstimatedDelivery(estimatedDelivery);
+        shipping.setShippedAt(LocalDateTime.now());
+        shipping.setNotes(notes);
+        shippingRepository.save(shipping);
+
+        Order savedOrder = orderRepository.save(order);
+        createOrderEvent(savedOrder, "SHIPPED", "Order shipped with tracking: " + trackingNumber);
+
+        return convertToDTO(savedOrder);
+    }
+
+    public OrderDTO deliverOrder(String orderNo, LocalDateTime deliveredDate, String notes) {
+        Order order = orderRepository.findByOrderNo(orderNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != Order.Status.SHIPPED) {
+            throw new BusinessException("Only shipped orders can be marked as delivered");
+        }
+
+        Shipping shipping = order.getShipping();
+        if (shipping == null) {
+            throw new BusinessException("Shipping information not found");
+        }
+
+        shipping.setStatus(Shipping.Status.DELIVERED);
+        shipping.setDeliveredAt(deliveredDate != null ? deliveredDate : LocalDateTime.now());
+        if (notes != null) {
+            shipping.setNotes(shipping.getNotes() != null ? shipping.getNotes() + "\n" + notes : notes);
+        }
+        shippingRepository.save(shipping);
+
+        createOrderEvent(order, "DELIVERED", "Order delivered successfully");
+
+        return convertToDTO(order);
+    }
+
+    private String generateOrderNo() {
+        return "ORD-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
     private OrderDTO convertToDTO(Order order) {
         OrderDTO dto = new OrderDTO();
         dto.setId(order.getId());
+        dto.setOrderNo(order.getOrderNo());
         dto.setCustomerId(order.getCustomer().getId());
         dto.setCustomerName(order.getCustomer().getUsername());
         dto.setTotalAmount(order.getTotalAmount());
@@ -225,6 +326,10 @@ public class OrderService {
 
         if (order.getPayments() != null) {
             dto.setPayments(order.getPayments().stream().map(this::convertToPaymentDTO).collect(Collectors.toList()));
+        }
+
+        if (order.getShipping() != null) {
+            dto.setShipping(convertToShippingDTO(order.getShipping()));
         }
 
         return dto;
@@ -250,6 +355,20 @@ public class OrderService {
         dto.setTransactionId(payment.getTransactionId());
         dto.setPaidAt(payment.getPaidAt());
         dto.setCreatedAt(payment.getCreatedAt());
+        return dto;
+    }
+
+    private ShippingDTO convertToShippingDTO(Shipping shipping) {
+        ShippingDTO dto = new ShippingDTO();
+        dto.setId(shipping.getId());
+        dto.setOrderId(shipping.getOrder().getId());
+        dto.setStatus(shipping.getStatus().name());
+        dto.setTrackingNumber(shipping.getTrackingNumber());
+        dto.setCarrier(shipping.getCarrier());
+        dto.setEstimatedDelivery(shipping.getEstimatedDelivery());
+        dto.setShippedAt(shipping.getShippedAt());
+        dto.setDeliveredAt(shipping.getDeliveredAt());
+        dto.setNotes(shipping.getNotes());
         return dto;
     }
 }

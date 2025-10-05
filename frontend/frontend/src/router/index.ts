@@ -35,6 +35,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['CUSTOMER'] }
     },
     {
+      path: '/orders/:orderNo',
+      name: 'OrderDetail',
+      component: () => import('@/views/OrderDetail.vue'),
+      meta: { requiresAuth: true, roles: ['CUSTOMER'] }
+    },
+    {
       path: '/cart',
       name: 'Cart',
       component: () => import('@/views/Cart.vue'),
