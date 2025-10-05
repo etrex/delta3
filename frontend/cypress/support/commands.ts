@@ -167,6 +167,9 @@ Cypress.Commands.add('addProductToCart', (productName: string, quantity: number)
 
   // Wait for modal to close
   cy.get('[data-cy=quantity-modal]').should('not.be.visible')
+
+  // Verify cart count updated (should not be 0)
+  cy.get('[data-cy=cart-count]').should('not.contain', '0')
 })
 
 // @ts-ignore
