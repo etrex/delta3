@@ -22,18 +22,38 @@
         <div class="order-items" data-cy="order-items">
           <h3>商品明細</h3>
           <div
-            v-for="item in cartStore.items"
+            v-for="(item, index) in cartStore.items"
             :key="item.product.id"
             class="order-item"
             data-cy="order-item"
           >
             <div class="item-info">
               <span class="item-name" data-cy="item-name">{{ item.product.name }}</span>
-              <span class="item-quantity" data-cy="item-quantity">x {{ item.quantity }}</span>
+              <span v-if="editingIndex !== index" class="item-quantity" data-cy="item-quantity">x {{ item.quantity }}</span>
+              <div v-else class="quantity-edit">
+                <el-input-number
+                  v-model="editQuantity"
+                  :min="1"
+                  data-cy="quantity-input"
+                  size="small"
+                />
+                <el-button
+                  data-cy="update-quantity-btn"
+                  size="small"
+                  type="primary"
+                  @click="updateQuantity(item.product.id!)"
+                >更新</el-button>
+              </div>
             </div>
             <div class="item-prices">
               <span class="item-price" data-cy="item-price">${{ item.product.price.toFixed(2) }}</span>
               <span class="item-subtotal" data-cy="item-subtotal">${{ (item.product.price * item.quantity).toFixed(2) }}</span>
+              <el-button
+                v-if="editingIndex !== index"
+                data-cy="edit-quantity-btn"
+                size="small"
+                @click="startEdit(index, item.quantity)"
+              >修改數量</el-button>
             </div>
           </div>
         </div>
@@ -83,6 +103,8 @@ const isCreatingOrder = ref(false)
 const errorMessage = ref('')
 const errorDetails = ref('')
 const successMessage = ref('')
+const editingIndex = ref<number | null>(null)
+const editQuantity = ref(1)
 
 onMounted(() => {
   // 如果購物車是空的，重導向到購物車頁面
@@ -149,6 +171,16 @@ async function confirmOrder() {
 
 function goBackToCart() {
   router.push('/cart')
+}
+
+function startEdit(index: number, quantity: number) {
+  editingIndex.value = index
+  editQuantity.value = quantity
+}
+
+function updateQuantity(productId: number) {
+  cartStore.updateQuantity(productId, editQuantity.value)
+  editingIndex.value = null
 }
 </script>
 

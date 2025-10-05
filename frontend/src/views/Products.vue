@@ -39,12 +39,12 @@
         <p>可用庫存：{{ selectedProduct.stock }}</p>
 
         <el-form :model="form" :rules="rules" ref="formRef">
-          <el-form-item label="數量" prop="quantity">
+          <el-form-item label="數量" prop="quantity" :error="errorMessage">
             <el-input-number
               v-model="form.quantity"
               :min="1"
               data-cy="quantity-input"
-              class="quantity-input"
+              :class="['quantity-input', { 'error': errorMessage }]"
             />
           </el-form-item>
         </el-form>

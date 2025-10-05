@@ -79,12 +79,16 @@ describe('建立訂單功能', () => {
       cy.addProductToCart('測試商品1', 2)
       cy.get('[data-cy=cart-icon]').click()
 
-      cy.get('[data-cy=cart-item]').first().within(() => {
-        cy.get('[data-cy=quantity-increase-btn]').click()
-        cy.get('[data-cy=item-quantity]').should('contain', '3')
-      })
+      // 記錄原始總價
+      cy.get('[data-cy=cart-total]').invoke('text').then((originalTotal) => {
+        cy.get('[data-cy=cart-item]').first().within(() => {
+          cy.get('[data-cy=quantity-increase-btn]').click()
+          cy.get('[data-cy=item-quantity]').should('contain', '3')
+        })
 
-      cy.get('[data-cy=cart-total]').should('contain', '更新後的總價')
+        // 確認總價已更新
+        cy.get('[data-cy=cart-total]').invoke('text').should('not.equal', originalTotal)
+      })
     })
 
     it('應可以從購物車移除商品', () => {
@@ -107,7 +111,7 @@ describe('建立訂單功能', () => {
         cy.get('[data-cy=add-to-cart-btn]').click()
       })
 
-      cy.get('[data-cy=quantity-input]').type('10')
+      cy.get('[data-cy=quantity-input]').clear().type('10')
       cy.get('[data-cy=confirm-add-btn]').click()
 
       cy.get('[data-cy=error-message]').should('contain', '超過可用庫存')

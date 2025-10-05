@@ -20,6 +20,9 @@ import 'cypress-file-upload'
 // 全局測試資料管理
 // 在每個測試檔案執行前重置資料庫並初始化基本用戶
 beforeEach(() => {
+  // 清除 localStorage（重置購物車等客戶端狀態）
+  cy.clearLocalStorage()
+
   // 重置資料庫（清空訂單、商品、付款）
   cy.task('db:reset', { timeout: 10000 })
   // 初始化基本用戶（admin, customer1）
