@@ -32,8 +32,8 @@
 
       <div class="test-accounts">
         <el-divider>Test Accounts</el-divider>
-        <p><strong>Admin:</strong> admin / password</p>
-        <p><strong>Customer:</strong> customer1 / password</p>
+        <p><strong>Admin:</strong> admin / password123</p>
+        <p><strong>Customer:</strong> customer1 / password123</p>
       </div>
     </el-card>
   </div>
@@ -87,10 +87,10 @@ const handleLogin = async () => {
 const fillTestAccount = () => {
   if (form.role === 'ADMIN') {
     form.username = 'admin'
-    form.password = 'password'
+    form.password = 'password123'
   } else {
     form.username = 'customer1'
-    form.password = 'password'
+    form.password = 'password123'
   }
 }
 </script>
