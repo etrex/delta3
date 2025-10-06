@@ -5,7 +5,7 @@ const API_BASE = 'http://localhost:8080/api'
 
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on, config) {
+    setupNodeEvents(on) {
       on('task', {
         log(message) {
           console.log(message)
@@ -63,8 +63,8 @@ export default defineConfig({
       })
     },
     baseUrl: 'http://localhost:5173',
-    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
-    supportFile: 'cypress/support/e2e.ts',
+    specPattern: 'e2e/**/*.cy.{js,jsx,ts,tsx}',
+    supportFile: 'support/e2e.ts',
     video: false,
     screenshotOnRunFailure: false,
     viewportWidth: 1280,

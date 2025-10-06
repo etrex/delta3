@@ -88,5 +88,33 @@ echo "Frontend PID: $FRONTEND_PID"
 echo ""
 echo "Press Ctrl+C to stop all services"
 
+# Function to cleanup on exit
+cleanup() {
+    echo ""
+    echo "🛑 Stopping services..."
+
+    # Kill frontend
+    if [ ! -z "$FRONTEND_PID" ]; then
+        echo "   Stopping frontend (PID: $FRONTEND_PID)..."
+        kill $FRONTEND_PID 2>/dev/null || true
+    fi
+
+    # Kill backend and its child processes
+    if [ ! -z "$BACKEND_PID" ]; then
+        echo "   Stopping backend (PID: $BACKEND_PID)..."
+        # Kill the Maven process and all its children
+        pkill -P $BACKEND_PID 2>/dev/null || true
+        kill $BACKEND_PID 2>/dev/null || true
+        # Also kill any process on port 8080
+        lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+    fi
+
+    echo "✅ All services stopped"
+    exit 0
+}
+
+# Trap Ctrl+C and other termination signals
+trap cleanup SIGINT SIGTERM
+
 # Keep the script running
 wait

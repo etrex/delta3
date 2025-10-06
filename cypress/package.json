@@ -1,0 +1,19 @@
+{
+  "name": "cypress-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for Order Management System",
+  "private": true,
+  "scripts": {
+    "test": "cypress run",
+    "test:open": "cypress open",
+    "test:headed": "cypress run --headed",
+    "test:chrome": "cypress run --browser chrome"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "axios": "^1.12.2",
+    "cypress": "^15.3.0",
+    "cypress-file-upload": "^5.0.8",
+    "typescript": "~5.8.3"
+  }
+}
