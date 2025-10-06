@@ -109,44 +109,33 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { useCartStore } from '@/stores/cart'
 import { ShoppingCart } from '@element-plus/icons-vue'
-import cartApi from '@/api/cart'
-import type { Order } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const cartStore = useCartStore()
 
-const cart = ref<Order | null>(null)
 const cartDrawerVisible = ref(false)
 const confirmDialogVisible = ref(false)
 const itemToRemove = ref<number | null>(null)
 
-const items = computed(() => cart.value?.items || [])
-const totalAmount = computed(() => cart.value?.totalAmount || 0)
-const totalItems = computed(() => {
-  return items.value.reduce((sum, item) => sum + item.quantity, 0)
-})
+const items = computed(() => cartStore.items)
+const totalAmount = computed(() => cartStore.totalAmount)
+const totalItems = computed(() => cartStore.totalItems)
 
 onMounted(async () => {
   if (authStore.isCustomer) {
-    await loadCart()
+    await cartStore.loadCart()
   }
 })
 
 // Watch for cart drawer opening to reload cart
 watch(cartDrawerVisible, async (newValue) => {
   if (newValue && authStore.isCustomer) {
-    await loadCart()
+    await cartStore.loadCart()
   }
 })
-
-async function loadCart() {
-  try {
-    cart.value = await cartApi.getCart()
-  } catch (error) {
-    console.error('Failed to load cart:', error)
-  }
-}
 
 function handleLogout() {
   authStore.logout()
@@ -161,7 +150,7 @@ async function increaseQuantity(itemId: number) {
   const item = items.value.find(i => i.id === itemId)
   if (item) {
     try {
-      cart.value = await cartApi.updateCartItem(itemId, item.quantity + 1)
+      await cartStore.updateCartItem(itemId, item.quantity + 1)
     } catch (error) {
       console.error('Failed to update quantity:', error)
       ElMessage.error('更新數量失敗')
@@ -173,7 +162,7 @@ async function decreaseQuantity(itemId: number) {
   const item = items.value.find(i => i.id === itemId)
   if (item && item.quantity > 1) {
     try {
-      cart.value = await cartApi.updateCartItem(itemId, item.quantity - 1)
+      await cartStore.updateCartItem(itemId, item.quantity - 1)
     } catch (error) {
       console.error('Failed to update quantity:', error)
       ElMessage.error('更新數量失敗')
@@ -189,8 +178,7 @@ function confirmRemove(itemId: number) {
 async function removeItem() {
   if (itemToRemove.value !== null) {
     try {
-      await cartApi.removeCartItem(itemToRemove.value)
-      await loadCart()
+      await cartStore.removeCartItem(itemToRemove.value)
       ElMessage.success('已移除商品')
     } catch (error) {
       console.error('Failed to remove item:', error)

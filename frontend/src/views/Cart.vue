@@ -89,35 +89,25 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import cartApi from '@/api/cart'
-import type { Order } from '@/types'
+import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
-const cart = ref<Order | null>(null)
+const cartStore = useCartStore()
 const confirmDialogVisible = ref(false)
 const itemToRemove = ref<number | null>(null)
 
-const items = computed(() => cart.value?.items || [])
-const totalAmount = computed(() => cart.value?.totalAmount || 0)
+const items = computed(() => cartStore.items)
+const totalAmount = computed(() => cartStore.totalAmount)
 
 onMounted(async () => {
-  await loadCart()
+  await cartStore.loadCart()
 })
-
-async function loadCart() {
-  try {
-    cart.value = await cartApi.getCart()
-  } catch (error) {
-    console.error('Failed to load cart:', error)
-    ElMessage.error('載入購物車失敗')
-  }
-}
 
 async function increaseQuantity(itemId: number) {
   const item = items.value.find(i => i.id === itemId)
   if (item) {
     try {
-      cart.value = await cartApi.updateCartItem(itemId, item.quantity + 1)
+      await cartStore.updateCartItem(itemId, item.quantity + 1)
     } catch (error) {
       console.error('Failed to update quantity:', error)
       ElMessage.error('更新數量失敗')
@@ -129,7 +119,7 @@ async function decreaseQuantity(itemId: number) {
   const item = items.value.find(i => i.id === itemId)
   if (item && item.quantity > 1) {
     try {
-      cart.value = await cartApi.updateCartItem(itemId, item.quantity - 1)
+      await cartStore.updateCartItem(itemId, item.quantity - 1)
     } catch (error) {
       console.error('Failed to update quantity:', error)
       ElMessage.error('更新數量失敗')
@@ -145,8 +135,7 @@ function confirmRemove(itemId: number) {
 async function removeItem() {
   if (itemToRemove.value !== null) {
     try {
-      await cartApi.removeCartItem(itemToRemove.value)
-      await loadCart()
+      await cartStore.removeCartItem(itemToRemove.value)
       ElMessage.success('已移除商品')
     } catch (error) {
       console.error('Failed to remove item:', error)

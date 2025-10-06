@@ -78,8 +78,10 @@
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
 import productsApi from '@/api/products'
-import cartApi from '@/api/cart'
+import { useCartStore } from '@/stores/cart'
 import type { Product } from '@/types'
+
+const cartStore = useCartStore()
 
 const products = ref<Product[]>([])
 const quantityModalVisible = ref(false)
@@ -153,7 +155,7 @@ async function confirmBuyNow() {
     isCreatingOrder.value = true
 
     // Call backend API to add to cart
-    await cartApi.addToCart(selectedProduct.value.id!, form.quantity)
+    await cartStore.addToCart(selectedProduct.value.id!, form.quantity)
 
     successMessage.value = '已加入購物車'
     ElMessage.success('已加入購物車')

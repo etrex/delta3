@@ -92,13 +92,12 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import cartApi from '@/api/cart'
-import type { Order } from '@/types'
+import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const cartStore = useCartStore()
 
-const cart = ref<Order | null>(null)
 const isCreatingOrder = ref(false)
 const errorMessage = ref('')
 const errorDetails = ref('')
@@ -106,11 +105,11 @@ const successMessage = ref('')
 const editingIndex = ref<number | null>(null)
 const editQuantity = ref(1)
 
-const items = computed(() => cart.value?.items || [])
-const totalAmount = computed(() => cart.value?.totalAmount || 0)
+const items = computed(() => cartStore.items)
+const totalAmount = computed(() => cartStore.totalAmount)
 
 onMounted(async () => {
-  await loadCart()
+  await cartStore.loadCart()
 
   // 如果購物車是空的，重導向到購物車頁面
   if (items.value.length === 0) {
@@ -120,15 +119,6 @@ onMounted(async () => {
     }, 1500)
   }
 })
-
-async function loadCart() {
-  try {
-    cart.value = await cartApi.getCart()
-  } catch (error) {
-    console.error('Failed to load cart:', error)
-    ElMessage.error('載入購物車失敗')
-  }
-}
 
 async function confirmOrder() {
   if (items.value.length === 0) {
@@ -143,7 +133,7 @@ async function confirmOrder() {
 
   try {
     // Call checkout API to convert cart to order
-    const order = await cartApi.checkout()
+    const order = await cartStore.checkout()
 
     // 顯示成功訊息
     successMessage.value = '訂單已成功建立'
@@ -180,7 +170,7 @@ function startEdit(index: number, quantity: number) {
 
 async function updateQuantity(itemId: number) {
   try {
-    cart.value = await cartApi.updateCartItem(itemId, editQuantity.value)
+    await cartStore.updateCartItem(itemId, editQuantity.value)
     editingIndex.value = null
     ElMessage.success('已更新數量')
   } catch (error) {

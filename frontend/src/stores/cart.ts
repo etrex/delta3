@@ -3,73 +3,85 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Product } from '@/types'
-
-export interface CartItem {
-  product: Product
-  quantity: number
-}
+import cartApi from '@/api/cart'
+import type { Order } from '@/types'
 
 export const useCartStore = defineStore('cart', () => {
-  // Load cart from localStorage on init
-  const savedCart = localStorage.getItem('cart')
-  const items = ref<CartItem[]>(savedCart ? JSON.parse(savedCart) : [])
+  const cart = ref<Order | null>(null)
+  const loading = ref(false)
 
+  const items = computed(() => cart.value?.items || [])
   const totalItems = computed(() => {
     return items.value.reduce((sum, item) => sum + item.quantity, 0)
   })
+  const totalAmount = computed(() => cart.value?.totalAmount || 0)
 
-  const totalAmount = computed(() => {
-    return items.value.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-  })
-
-  function saveToLocalStorage() {
-    localStorage.setItem('cart', JSON.stringify(items.value))
+  async function loadCart() {
+    try {
+      loading.value = true
+      cart.value = await cartApi.getCart()
+    } catch (error) {
+      console.error('Failed to load cart:', error)
+      cart.value = null
+    } finally {
+      loading.value = false
+    }
   }
 
-  function addToCart(product: Product, quantity: number) {
-    const existingItem = items.value.find(item => item.product.id === product.id)
-
-    if (existingItem) {
-      existingItem.quantity += quantity
-    } else {
-      items.value.push({ product, quantity })
+  async function addToCart(productId: number, quantity: number) {
+    try {
+      cart.value = await cartApi.addToCart(productId, quantity)
+    } catch (error) {
+      console.error('Failed to add to cart:', error)
+      throw error
     }
-    saveToLocalStorage()
   }
 
-  function updateQuantity(productId: number, quantity: number) {
-    const item = items.value.find(item => item.product.id === productId)
-    if (item) {
-      if (quantity <= 0) {
-        removeFromCart(productId)
-      } else {
-        item.quantity = quantity
-      }
+  async function updateCartItem(itemId: number, quantity: number) {
+    try {
+      cart.value = await cartApi.updateCartItem(itemId, quantity)
+    } catch (error) {
+      console.error('Failed to update cart item:', error)
+      throw error
     }
-    saveToLocalStorage()
   }
 
-  function removeFromCart(productId: number) {
-    const index = items.value.findIndex(item => item.product.id === productId)
-    if (index > -1) {
-      items.value.splice(index, 1)
+  async function removeCartItem(itemId: number) {
+    try {
+      await cartApi.removeCartItem(itemId)
+      await loadCart() // Reload cart after removal
+    } catch (error) {
+      console.error('Failed to remove cart item:', error)
+      throw error
     }
-    saveToLocalStorage()
+  }
+
+  async function checkout() {
+    try {
+      const order = await cartApi.checkout()
+      cart.value = null // Clear cart after checkout
+      return order
+    } catch (error) {
+      console.error('Failed to checkout:', error)
+      throw error
+    }
   }
 
   function clearCart() {
-    items.value = []
-    saveToLocalStorage()
+    cart.value = null
   }
 
   return {
+    cart,
     items,
     totalItems,
     totalAmount,
+    loading,
+    loadCart,
     addToCart,
-    updateQuantity,
-    removeFromCart,
+    updateCartItem,
+    removeCartItem,
+    checkout,
     clearCart
   }
 })
