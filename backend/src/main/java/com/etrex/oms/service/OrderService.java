@@ -371,4 +371,159 @@ public class OrderService {
         dto.setNotes(shipping.getNotes());
         return dto;
     }
+
+    // ========== Cart Methods ==========
+
+    @Transactional
+    public OrderDTO getOrCreateCart(User user) {
+        // Find existing cart
+        Order cart = orderRepository.findAll().stream()
+                .filter(o -> o.getCustomer().getId().equals(user.getId()))
+                .filter(o -> o.getStatus() == Order.Status.CART)
+                .findFirst()
+                .orElseGet(() -> {
+                    // Create new cart with order number
+                    Order newCart = new Order();
+                    newCart.setCustomer(user);
+                    newCart.setStatus(Order.Status.CART);
+                    newCart.setOrderNo(generateOrderNo());  // Generate order number at creation
+                    newCart.setTotalAmount(BigDecimal.ZERO);
+                    return orderRepository.save(newCart);
+                });
+
+        return convertToDTO(cart);
+    }
+
+    @Transactional
+    public OrderDTO addToCart(User user, Long productId, Integer quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
+        // Validate stock
+        if (product.getStock() < quantity) {
+            throw new RuntimeException("Insufficient stock for product: " + product.getName());
+        }
+
+        // Get or create cart
+        Order cart = orderRepository.findAll().stream()
+                .filter(o -> o.getCustomer().getId().equals(user.getId()))
+                .filter(o -> o.getStatus() == Order.Status.CART)
+                .findFirst()
+                .orElseGet(() -> {
+                    Order newCart = new Order();
+                    newCart.setCustomer(user);
+                    newCart.setStatus(Order.Status.CART);
+                    newCart.setOrderNo(generateOrderNo());  // Generate order number at creation
+                    newCart.setTotalAmount(BigDecimal.ZERO);
+                    return orderRepository.save(newCart);
+                });
+
+        // Check if product already in cart
+        OrderItem existingItem = cart.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElse(null);
+
+        if (existingItem != null) {
+            // Update quantity
+            existingItem.setQuantity(existingItem.getQuantity() + quantity);
+        } else {
+            // Add new item
+            OrderItem newItem = new OrderItem();
+            newItem.setOrder(cart);
+            newItem.setProduct(product);
+            newItem.setQuantity(quantity);
+            newItem.setPrice(product.getPrice());
+            cart.getItems().add(newItem);
+        }
+
+        // Recalculate total
+        recalculateCartTotal(cart);
+
+        return convertToDTO(orderRepository.save(cart));
+    }
+
+    @Transactional
+    public OrderDTO updateCartItem(User user, Long itemId, Integer quantity) {
+        Order cart = orderRepository.findAll().stream()
+                .filter(o -> o.getCustomer().getId().equals(user.getId()))
+                .filter(o -> o.getStatus() == Order.Status.CART)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        OrderItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+
+        if (quantity <= 0) {
+            cart.getItems().remove(item);
+        } else {
+            item.setQuantity(quantity);
+        }
+
+        recalculateCartTotal(cart);
+        return convertToDTO(orderRepository.save(cart));
+    }
+
+    @Transactional
+    public void removeCartItem(User user, Long itemId) {
+        Order cart = orderRepository.findAll().stream()
+                .filter(o -> o.getCustomer().getId().equals(user.getId()))
+                .filter(o -> o.getStatus() == Order.Status.CART)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        cart.getItems().removeIf(item -> item.getId().equals(itemId));
+        recalculateCartTotal(cart);
+        orderRepository.save(cart);
+    }
+
+    @Transactional
+    public OrderDTO checkoutCart(User user) {
+        Order cart = orderRepository.findAll().stream()
+                .filter(o -> o.getCustomer().getId().equals(user.getId()))
+                .filter(o -> o.getStatus() == Order.Status.CART)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        if (cart.getItems().isEmpty()) {
+            throw new RuntimeException("Cart is empty");
+        }
+
+        // Validate stock for all items
+        for (OrderItem item : cart.getItems()) {
+            Product product = item.getProduct();
+            if (product.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+            }
+        }
+
+        // Deduct stock
+        for (OrderItem item : cart.getItems()) {
+            Product product = item.getProduct();
+            product.setStock(product.getStock() - item.getQuantity());
+            productRepository.save(product);
+        }
+
+        // Convert cart to order (CART -> CREATED)
+        // Order number was already generated when cart was created
+        cart.setStatus(Order.Status.CREATED);
+
+        // Create order event
+        OrderEvent event = new OrderEvent();
+        event.setOrder(cart);
+        event.setEventType("CREATED");
+        event.setMessage("Order created from cart");
+        orderEventRepository.save(event);
+
+        return convertToDTO(orderRepository.save(cart));
+    }
+
+    private void recalculateCartTotal(Order cart) {
+        BigDecimal total = cart.getItems().stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        cart.setTotalAmount(total);
+    }
 }

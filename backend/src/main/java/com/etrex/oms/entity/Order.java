@@ -23,7 +23,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "order_no", unique = true, nullable = false)
+    @Column(name = "order_no", unique = true)
     private String orderNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,7 +56,7 @@ public class Order {
     private Shipping shipping;
 
     public enum Status {
-        CREATED, PAID, APPROVED, SHIPPED, CANCELLED
+        CART, CREATED, PAID, APPROVED, SHIPPED, CANCELLED
     }
 
     @PreUpdate

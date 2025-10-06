@@ -5,16 +5,14 @@ package com.etrex.oms.controller;
 
 import com.etrex.oms.entity.Product;
 import com.etrex.oms.entity.User;
-import com.etrex.oms.repository.OrderRepository;
-import com.etrex.oms.repository.ProductRepository;
-import com.etrex.oms.repository.UserRepository;
-import com.etrex.oms.repository.PaymentRepository;
+import com.etrex.oms.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.Data;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,11 +26,19 @@ public class TestDataController {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final OrderEventRepository orderEventRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ShippingRepository shippingRepository;
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/reset")
+    @Transactional
     public ResponseEntity<String> resetDatabase() {
+        // 刪除順序很重要：先刪除子表，再刪除父表
+        shippingRepository.deleteAll();
         paymentRepository.deleteAll();
+        orderEventRepository.deleteAll();
+        orderItemRepository.deleteAll();
         orderRepository.deleteAll();
         productRepository.deleteAll();
         return ResponseEntity.ok("Database reset successfully");

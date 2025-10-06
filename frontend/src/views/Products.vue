@@ -18,18 +18,18 @@
             v-if="product.stock > 0"
             type="primary"
             data-cy="add-to-cart-btn"
-            @click="showAddToCartModal(product)"
-            class="add-to-cart-btn"
-          >加入購物車</el-button>
+            @click="showBuyModal(product)"
+            class="buy-btn"
+          >立即購買</el-button>
           <el-button v-else disabled>缺貨</el-button>
         </div>
       </el-card>
     </div>
 
-    <!-- 加入購物車數量選擇 Modal -->
+    <!-- 購買數量選擇 Modal -->
     <el-dialog
       v-model="quantityModalVisible"
-      title="選擇數量"
+      title="選擇購買數量"
       width="400px"
       data-cy="quantity-modal"
     >
@@ -49,6 +49,10 @@
           </el-form-item>
         </el-form>
 
+        <div class="order-summary">
+          <p>總計：${{ (selectedProduct.price * form.quantity).toFixed(2) }}</p>
+        </div>
+
         <div v-if="errorMessage" class="error-message" data-cy="error-message">
           {{ errorMessage }}
         </div>
@@ -62,8 +66,9 @@
         <el-button
           type="primary"
           data-cy="confirm-add-btn"
-          @click="confirmAddToCart"
-        >確認</el-button>
+          @click="confirmBuyNow"
+          :loading="isCreatingOrder"
+        >確認購買</el-button>
       </template>
     </el-dialog>
   </div>
@@ -73,7 +78,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
 import productsApi from '@/api/products'
-import { useCartStore } from '@/stores/cart'
+import cartApi from '@/api/cart'
 import type { Product } from '@/types'
 
 const products = ref<Product[]>([])
@@ -82,8 +87,7 @@ const selectedProduct = ref<Product | null>(null)
 const errorMessage = ref('')
 const successMessage = ref('')
 const formRef = ref<FormInstance>()
-
-const cartStore = useCartStore()
+const isCreatingOrder = ref(false)
 
 const form = reactive({
   quantity: 1
@@ -110,15 +114,15 @@ onMounted(async () => {
 
 async function loadProducts() {
   try {
-    const response = await productsApi.getProducts({ status: 'ACTIVE' })
-    products.value = response.data.content || response.data
+    const data = await productsApi.getProducts({ status: 'ACTIVE' })
+    products.value = data.content || data
   } catch (error) {
     console.error('Failed to load products:', error)
     ElMessage.error('載入商品失敗')
   }
 }
 
-function showAddToCartModal(product: Product) {
+function showBuyModal(product: Product) {
   selectedProduct.value = product
   form.quantity = 1
   errorMessage.value = ''
@@ -126,7 +130,7 @@ function showAddToCartModal(product: Product) {
   quantityModalVisible.value = true
 }
 
-async function confirmAddToCart() {
+async function confirmBuyNow() {
   if (!selectedProduct.value) return
 
   errorMessage.value = ''
@@ -146,7 +150,10 @@ async function confirmAddToCart() {
   try {
     await formRef.value?.validate()
 
-    cartStore.addToCart(selectedProduct.value, form.quantity)
+    isCreatingOrder.value = true
+
+    // Call backend API to add to cart
+    await cartApi.addToCart(selectedProduct.value.id!, form.quantity)
 
     successMessage.value = '已加入購物車'
     ElMessage.success('已加入購物車')
@@ -156,9 +163,12 @@ async function confirmAddToCart() {
       quantityModalVisible.value = false
       selectedProduct.value = null
       successMessage.value = ''
+      isCreatingOrder.value = false
     }, 500)
-  } catch (error) {
-    console.error('Validation failed:', error)
+  } catch (error: any) {
+    console.error('Failed to add to cart:', error)
+    errorMessage.value = error.response?.data?.message || '加入購物車失敗'
+    isCreatingOrder.value = false
   }
 }
 </script>

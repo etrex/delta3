@@ -35,10 +35,11 @@ export interface OrderItem {
 
 export interface Order {
   id?: number
-  customerId: number
+  orderNo?: string
+  customerId?: number
   customerName?: string
   totalAmount: number
-  status: 'CREATED' | 'PAID' | 'APPROVED' | 'SHIPPED' | 'CANCELLED'
+  status: 'CART' | 'CREATED' | 'PAID' | 'APPROVED' | 'SHIPPED' | 'CANCELLED'
   createdAt?: string
   updatedAt?: string
   items?: OrderItem[]

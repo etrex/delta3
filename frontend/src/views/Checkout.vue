@@ -22,13 +22,13 @@
         <div class="order-items" data-cy="order-items">
           <h3>商品明細</h3>
           <div
-            v-for="(item, index) in cartStore.items"
-            :key="item.product.id"
+            v-for="(item, index) in items"
+            :key="item.id"
             class="order-item"
             data-cy="order-item"
           >
             <div class="item-info">
-              <span class="item-name" data-cy="item-name">{{ item.product.name }}</span>
+              <span class="item-name" data-cy="item-name">{{ item.productName }}</span>
               <span v-if="editingIndex !== index" class="item-quantity" data-cy="item-quantity">x {{ item.quantity }}</span>
               <div v-else class="quantity-edit">
                 <el-input-number
@@ -41,13 +41,13 @@
                   data-cy="update-quantity-btn"
                   size="small"
                   type="primary"
-                  @click="updateQuantity(item.product.id!)"
+                  @click="updateQuantity(item.id!)"
                 >更新</el-button>
               </div>
             </div>
             <div class="item-prices">
-              <span class="item-price" data-cy="item-price">${{ item.product.price.toFixed(2) }}</span>
-              <span class="item-subtotal" data-cy="item-subtotal">${{ (item.product.price * item.quantity).toFixed(2) }}</span>
+              <span class="item-price" data-cy="item-price">${{ item.price.toFixed(2) }}</span>
+              <span class="item-subtotal" data-cy="item-subtotal">${{ (item.price * item.quantity).toFixed(2) }}</span>
               <el-button
                 v-if="editingIndex !== index"
                 data-cy="edit-quantity-btn"
@@ -61,11 +61,11 @@
         <div class="order-total-section">
           <div class="total-row">
             <span>商品總計</span>
-            <span data-cy="item-total">${{ cartStore.totalAmount.toFixed(2) }}</span>
+            <span data-cy="item-total">${{ totalAmount.toFixed(2) }}</span>
           </div>
           <div class="total-row total">
             <span>訂單總額</span>
-            <span data-cy="total-amount">${{ cartStore.totalAmount.toFixed(2) }}</span>
+            <span data-cy="total-amount">${{ totalAmount.toFixed(2) }}</span>
           </div>
           <div class="order-status-info">
             <span>訂單狀態：</span>
@@ -88,17 +88,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import { useCartStore } from '@/stores/cart'
-import ordersApi from '@/api/orders'
+import cartApi from '@/api/cart'
+import type { Order } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const cartStore = useCartStore()
 
+const cart = ref<Order | null>(null)
 const isCreatingOrder = ref(false)
 const errorMessage = ref('')
 const errorDetails = ref('')
@@ -106,9 +106,14 @@ const successMessage = ref('')
 const editingIndex = ref<number | null>(null)
 const editQuantity = ref(1)
 
-onMounted(() => {
+const items = computed(() => cart.value?.items || [])
+const totalAmount = computed(() => cart.value?.totalAmount || 0)
+
+onMounted(async () => {
+  await loadCart()
+
   // 如果購物車是空的，重導向到購物車頁面
-  if (cartStore.items.length === 0) {
+  if (items.value.length === 0) {
     errorMessage.value = '購物車不能為空'
     setTimeout(() => {
       router.push('/cart')
@@ -116,8 +121,17 @@ onMounted(() => {
   }
 })
 
+async function loadCart() {
+  try {
+    cart.value = await cartApi.getCart()
+  } catch (error) {
+    console.error('Failed to load cart:', error)
+    ElMessage.error('載入購物車失敗')
+  }
+}
+
 async function confirmOrder() {
-  if (cartStore.items.length === 0) {
+  if (items.value.length === 0) {
     errorMessage.value = '購物車不能為空'
     return
   }
@@ -128,22 +142,8 @@ async function confirmOrder() {
   successMessage.value = ''
 
   try {
-    // 準備訂單資料
-    const orderData = {
-      customerId: 1, // TODO: 從 authStore 獲取實際的 customer ID
-      items: cartStore.items.map(item => ({
-        productId: item.product.id!,
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price
-      }))
-    }
-
-    const response = await ordersApi.createOrder(orderData)
-    const order = response.data
-
-    // 清空購物車
-    cartStore.clearCart()
+    // Call checkout API to convert cart to order
+    const order = await cartApi.checkout()
 
     // 顯示成功訊息
     successMessage.value = '訂單已成功建立'
@@ -178,9 +178,15 @@ function startEdit(index: number, quantity: number) {
   editQuantity.value = quantity
 }
 
-function updateQuantity(productId: number) {
-  cartStore.updateQuantity(productId, editQuantity.value)
-  editingIndex.value = null
+async function updateQuantity(itemId: number) {
+  try {
+    cart.value = await cartApi.updateCartItem(itemId, editQuantity.value)
+    editingIndex.value = null
+    ElMessage.success('已更新數量')
+  } catch (error) {
+    console.error('Failed to update quantity:', error)
+    ElMessage.error('更新數量失敗')
+  }
 }
 </script>
 

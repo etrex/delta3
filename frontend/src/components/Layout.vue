@@ -18,10 +18,10 @@
           </router-link>
 
           <div v-if="authStore.isCustomer" class="cart-icon" data-cy="cart-icon" @click="showCartDrawer">
-            <el-badge :value="cartStore.totalItems" :hidden="cartStore.totalItems === 0">
+            <el-badge :value="totalItems" :hidden="totalItems === 0">
               <el-icon :size="24"><ShoppingCart /></el-icon>
             </el-badge>
-            <span data-cy="cart-count" class="cart-count-text">{{ cartStore.totalItems }}</span>
+            <span data-cy="cart-count" class="cart-count-text">{{ totalItems }}</span>
           </div>
 
           <span class="username">{{ authStore.user?.username }}</span>
@@ -42,49 +42,49 @@
       size="400px"
       data-cy="cart-drawer"
     >
-      <div v-if="cartStore.items.length === 0" class="empty-cart" data-cy="cart-empty-message">
+      <div v-if="items.length === 0" class="empty-cart" data-cy="cart-empty-message">
         購物車是空的
       </div>
       <div v-else>
-        <div v-for="item in cartStore.items" :key="item.product.id" class="cart-item" data-cy="cart-item">
+        <div v-for="item in items" :key="item.id" class="cart-item" data-cy="cart-item">
           <div class="item-info">
-            <div class="item-name" data-cy="item-name">{{ item.product.name }}</div>
+            <div class="item-name" data-cy="item-name">{{ item.productName }}</div>
             <div class="item-quantity">
               <el-button
                 data-cy="quantity-decrease-btn"
                 size="small"
-                @click="decreaseQuantity(item.product.id!)"
+                @click="decreaseQuantity(item.id!)"
                 :disabled="item.quantity <= 1"
               >-</el-button>
               <span data-cy="item-quantity" class="quantity-value">{{ item.quantity }}</span>
               <el-button
                 data-cy="quantity-increase-btn"
                 size="small"
-                @click="increaseQuantity(item.product.id!)"
+                @click="increaseQuantity(item.id!)"
               >+</el-button>
             </div>
             <div class="item-subtotal" data-cy="item-subtotal">
-              ${{ (item.product.price * item.quantity).toFixed(2) }}
+              ${{ (item.price * item.quantity).toFixed(2) }}
             </div>
             <el-button
               data-cy="remove-item-btn"
               size="small"
               type="danger"
-              @click="confirmRemove(item.product.id!)"
+              @click="confirmRemove(item.id!)"
             >移除</el-button>
           </div>
         </div>
 
         <div class="cart-total" data-cy="cart-total">
-          總計: ${{ cartStore.totalAmount.toFixed(2) }}
+          總計: ${{ totalAmount.toFixed(2) }}
         </div>
 
         <el-button
           type="primary"
-          data-cy="checkout-from-drawer-btn"
+          data-cy="checkout-btn"
           class="checkout-btn"
-          @click="goToCart"
-        >前往結帳</el-button>
+          @click="goToCheckout"
+        >結帳</el-button>
       </div>
     </el-drawer>
 
@@ -105,19 +105,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import { useCartStore } from '@/stores/cart'
 import { ShoppingCart } from '@element-plus/icons-vue'
+import cartApi from '@/api/cart'
+import type { Order } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const cartStore = useCartStore()
 
+const cart = ref<Order | null>(null)
 const cartDrawerVisible = ref(false)
 const confirmDialogVisible = ref(false)
 const itemToRemove = ref<number | null>(null)
+
+const items = computed(() => cart.value?.items || [])
+const totalAmount = computed(() => cart.value?.totalAmount || 0)
+const totalItems = computed(() => {
+  return items.value.reduce((sum, item) => sum + item.quantity, 0)
+})
+
+onMounted(async () => {
+  if (authStore.isCustomer) {
+    await loadCart()
+  }
+})
+
+// Watch for cart drawer opening to reload cart
+watch(cartDrawerVisible, async (newValue) => {
+  if (newValue && authStore.isCustomer) {
+    await loadCart()
+  }
+})
+
+async function loadCart() {
+  try {
+    const response = await cartApi.getCart()
+    cart.value = response.data
+  } catch (error) {
+    console.error('Failed to load cart:', error)
+  }
+}
 
 function handleLogout() {
   authStore.logout()
@@ -128,36 +158,55 @@ function showCartDrawer() {
   cartDrawerVisible.value = true
 }
 
-function increaseQuantity(productId: number) {
-  const item = cartStore.items.find(i => i.product.id === productId)
+async function increaseQuantity(itemId: number) {
+  const item = items.value.find(i => i.id === itemId)
   if (item) {
-    cartStore.updateQuantity(productId, item.quantity + 1)
+    try {
+      const response = await cartApi.updateCartItem(itemId, item.quantity + 1)
+      cart.value = response.data
+    } catch (error) {
+      console.error('Failed to update quantity:', error)
+      ElMessage.error('更新數量失敗')
+    }
   }
 }
 
-function decreaseQuantity(productId: number) {
-  const item = cartStore.items.find(i => i.product.id === productId)
+async function decreaseQuantity(itemId: number) {
+  const item = items.value.find(i => i.id === itemId)
   if (item && item.quantity > 1) {
-    cartStore.updateQuantity(productId, item.quantity - 1)
+    try {
+      const response = await cartApi.updateCartItem(itemId, item.quantity - 1)
+      cart.value = response.data
+    } catch (error) {
+      console.error('Failed to update quantity:', error)
+      ElMessage.error('更新數量失敗')
+    }
   }
 }
 
-function confirmRemove(productId: number) {
-  itemToRemove.value = productId
+function confirmRemove(itemId: number) {
+  itemToRemove.value = itemId
   confirmDialogVisible.value = true
 }
 
-function removeItem() {
+async function removeItem() {
   if (itemToRemove.value !== null) {
-    cartStore.removeFromCart(itemToRemove.value)
+    try {
+      await cartApi.removeCartItem(itemToRemove.value)
+      await loadCart()
+      ElMessage.success('已移除商品')
+    } catch (error) {
+      console.error('Failed to remove item:', error)
+      ElMessage.error('移除商品失敗')
+    }
     itemToRemove.value = null
   }
   confirmDialogVisible.value = false
 }
 
-function goToCart() {
+function goToCheckout() {
   cartDrawerVisible.value = false
-  router.push('/cart')
+  router.push('/checkout')
 }
 </script>
 

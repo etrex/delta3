@@ -4,6 +4,7 @@
 package com.etrex.oms.controller;
 
 import com.etrex.oms.dto.*;
+import com.etrex.oms.entity.User;
 import com.etrex.oms.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -122,5 +124,67 @@ public class OrderController {
     static class DeliveryRequest {
         private LocalDateTime deliveredDate;
         private String notes;
+    }
+
+    // ========== Cart APIs ==========
+
+    @GetMapping("/cart")
+    @Operation(summary = "Get cart", description = "Get current user's cart (order with CART status)")
+    public ResponseEntity<OrderDTO> getCart() {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(orderService.getOrCreateCart(user));
+    }
+
+    @PostMapping("/cart/items")
+    @Operation(summary = "Add item to cart", description = "Add a product to cart")
+    public ResponseEntity<OrderDTO> addToCart(@Valid @RequestBody AddToCartRequest request) {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(orderService.addToCart(user, request.getProductId(), request.getQuantity()));
+    }
+
+    @PutMapping("/cart/items/{itemId}")
+    @Operation(summary = "Update cart item", description = "Update quantity of cart item")
+    public ResponseEntity<OrderDTO> updateCartItem(
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateCartItemRequest request) {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(orderService.updateCartItem(user, itemId, request.getQuantity()));
+    }
+
+    @DeleteMapping("/cart/items/{itemId}")
+    @Operation(summary = "Remove cart item", description = "Remove item from cart")
+    public ResponseEntity<Void> removeCartItem(@PathVariable Long itemId) {
+        User user = getCurrentUser();
+        orderService.removeCartItem(user, itemId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/cart/checkout")
+    @Operation(summary = "Checkout cart", description = "Convert cart to order (CART -> CREATED)")
+    public ResponseEntity<OrderDTO> checkout() {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(orderService.checkoutCart(user));
+    }
+
+    private User getCurrentUser() {
+        org.springframework.security.core.Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No authenticated user found");
+        }
+
+        return (User) authentication.getPrincipal();
+    }
+
+    @Data
+    static class AddToCartRequest {
+        private Long productId;
+        private Integer quantity;
+    }
+
+    @Data
+    static class UpdateCartItemRequest {
+        private Integer quantity;
     }
 }
