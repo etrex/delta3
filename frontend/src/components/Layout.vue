@@ -142,8 +142,7 @@ watch(cartDrawerVisible, async (newValue) => {
 
 async function loadCart() {
   try {
-    const response = await cartApi.getCart()
-    cart.value = response.data
+    cart.value = await cartApi.getCart()
   } catch (error) {
     console.error('Failed to load cart:', error)
   }
@@ -162,8 +161,7 @@ async function increaseQuantity(itemId: number) {
   const item = items.value.find(i => i.id === itemId)
   if (item) {
     try {
-      const response = await cartApi.updateCartItem(itemId, item.quantity + 1)
-      cart.value = response.data
+      cart.value = await cartApi.updateCartItem(itemId, item.quantity + 1)
     } catch (error) {
       console.error('Failed to update quantity:', error)
       ElMessage.error('更新數量失敗')
@@ -175,8 +173,7 @@ async function decreaseQuantity(itemId: number) {
   const item = items.value.find(i => i.id === itemId)
   if (item && item.quantity > 1) {
     try {
-      const response = await cartApi.updateCartItem(itemId, item.quantity - 1)
-      cart.value = response.data
+      cart.value = await cartApi.updateCartItem(itemId, item.quantity - 1)
     } catch (error) {
       console.error('Failed to update quantity:', error)
       ElMessage.error('更新數量失敗')

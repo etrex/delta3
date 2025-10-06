@@ -276,8 +276,7 @@ async function loadOrders() {
       params.search = searchKeyword.value
     }
 
-    const response = await ordersApi.getOrders(params)
-    const data = response.data
+    const data = await ordersApi.getOrders(params)
 
     if (data.content) {
       orders.value = data.content

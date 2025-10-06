@@ -474,7 +474,15 @@ public class OrderService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
-        cart.getItems().removeIf(item -> item.getId().equals(itemId));
+        // Find and remove the item
+        OrderItem itemToRemove = cart.getItems().stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+
+        cart.getItems().remove(itemToRemove);
+        itemToRemove.setOrder(null); // Clear bidirectional relationship
+
         recalculateCartTotal(cart);
         orderRepository.save(cart);
     }

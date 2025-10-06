@@ -326,8 +326,7 @@ onMounted(async () => {
 async function loadOrder() {
   try {
     const orderId = Number(route.params.id)
-    const response = await ordersApi.getOrder(orderId)
-    order.value = response.data
+    order.value = await ordersApi.getOrder(orderId)
   } catch (error) {
     console.error('Failed to load order:', error)
     ElMessage.error('載入訂單失敗')
