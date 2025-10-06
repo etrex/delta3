@@ -20,8 +20,16 @@ import 'cypress-file-upload'
 // 全局測試資料管理
 // 在每個測試檔案執行前重置資料庫並初始化基本用戶
 beforeEach(() => {
-  // 清除 localStorage（重置購物車等客戶端狀態）
-  cy.clearLocalStorage()
+  // 只在特定測試中清除 localStorage
+  // 購物車測試需要保留 localStorage 以維持狀態
+  const spec = Cypress.spec
+  const shouldClearStorage = !spec.relative.includes('manual-flow-test') &&
+                              !spec.relative.includes('order-creation.cy.ts') &&
+                              !spec.relative.includes('payment.cy.ts')
+
+  if (shouldClearStorage) {
+    cy.clearLocalStorage()
+  }
 
   // 重置資料庫（清空訂單、商品、付款）
   cy.task('db:reset', { timeout: 10000 })
