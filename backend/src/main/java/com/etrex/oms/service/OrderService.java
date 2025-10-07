@@ -226,8 +226,8 @@ public class OrderService {
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        if (order.getStatus() != Order.Status.PAID) {
-            throw new BusinessException("Only paid orders can be approved");
+        if (order.getStatus() != Order.Status.PAID && order.getStatus() != Order.Status.CREATED) {
+            throw new BusinessException("Only created or paid orders can be approved");
         }
 
         order.setStatus(Order.Status.APPROVED);
@@ -401,7 +401,7 @@ public class OrderService {
 
         // Validate stock
         if (product.getStock() < quantity) {
-            throw new RuntimeException("Insufficient stock for product: " + product.getName());
+            throw new BusinessException("Insufficient stock for product: " + product.getName());
         }
 
         // Get or create cart
@@ -493,17 +493,17 @@ public class OrderService {
                 .filter(o -> o.getCustomer().getId().equals(user.getId()))
                 .filter(o -> o.getStatus() == Order.Status.CART)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new BusinessException("Cart not found"));
 
         if (cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new BusinessException("Cart is empty");
         }
 
         // Validate stock for all items
         for (OrderItem item : cart.getItems()) {
             Product product = item.getProduct();
             if (product.getStock() < item.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                throw new BusinessException("Insufficient stock for product: " + product.getName());
             }
         }
 

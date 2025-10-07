@@ -1,27 +1,5 @@
 <template>
-  <div class="admin-layout">
-    <!-- Header with logout button -->
-    <el-header class="header-bar">
-      <div class="header-left">
-        <h2>智能訂單管理系統 - 出貨管理</h2>
-      </div>
-      <div class="header-right">
-        <el-space>
-          <span data-cy="user-role">Admin</span>
-          <span data-cy="username-display">{{ authStore.user?.username }}</span>
-          <el-button
-            type="danger"
-            plain
-            data-cy="logout-btn"
-            @click="handleLogout"
-          >
-            登出
-          </el-button>
-        </el-space>
-      </div>
-    </el-header>
-
-    <div class="shipping-container">
+  <div class="shipping-container">
       <h1>出貨管理</h1>
 
       <!-- 搜尋與篩選 -->
@@ -162,11 +140,11 @@
           <el-table-column label="付款狀態" width="120">
             <template #default="scope">
               <el-tag
-                :type="getPaymentStatusType(scope.row.paymentStatus)"
-                :class="'status-' + (scope.row.paymentStatus || 'pending').toLowerCase()"
+                :type="getPaymentStatusType(getPaymentStatus(scope.row))"
+                :class="'status-' + (getPaymentStatus(scope.row) || 'pending').toLowerCase()"
                 data-cy="payment-status"
               >
-                {{ getPaymentStatusLabel(scope.row.paymentStatus) }}
+                {{ getPaymentStatusLabel(getPaymentStatus(scope.row)) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -174,30 +152,32 @@
           <el-table-column label="出貨狀態" width="120">
             <template #default="scope">
               <el-tag
-                :type="getShippingStatusType(scope.row.shippingStatus)"
-                :class="'shipping-' + (scope.row.shippingStatus || 'pending').toLowerCase()"
+                :type="getShippingStatusType(getShippingStatus(scope.row))"
+                :class="'shipping-' + (getShippingStatus(scope.row) || 'pending').toLowerCase()"
                 data-cy="shipping-status"
               >
-                {{ getShippingStatusLabel(scope.row.shippingStatus) }}
+                {{ getShippingStatusLabel(getShippingStatus(scope.row)) }}
               </el-tag>
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="150">
+          <el-table-column label="操作" width="120">
             <template #default="scope">
               <el-button
+                v-if="scope.row.status !== 'SHIPPED' && scope.row.status !== 'CANCELLED'"
                 size="small"
                 type="primary"
-                data-cy="ship-action-btn"
-                @click.stop="showShippingActionModal(scope.row)"
+                data-cy="next-status-btn"
+                @click.stop="updateShippingStatusDirectly(scope.row)"
               >
-                出貨操作
+                → {{ getNextStatusLabel(scope.row.status) }}
               </el-button>
+              <span v-else-if="scope.row.status === 'SHIPPED'" class="completed-text">已出貨</span>
+              <span v-else class="completed-text">{{ scope.row.status }}</span>
             </template>
           </el-table-column>
         </el-table>
       </div>
-    </div>
 
     <!-- 出貨操作對話框 -->
     <el-dialog
@@ -532,6 +512,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import ordersApi from '@/api/orders'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -614,121 +595,32 @@ onUnmounted(() => {
 // API 調用
 async function loadOrders() {
   try {
-    // 模擬 API 調用 - 只載入已付款的訂單
-    const mockOrders = [
-      {
-        id: 1,
-        orderNo: 'ORD-001',
-        customerName: 'customer1',
-        customerPhone: '0912345678',
-        customerEmail: 'customer1@example.com',
-        createdAt: new Date().toISOString(),
-        totalAmount: 1500,
-        paymentStatus: 'SUCCESS',
-        shippingStatus: 'CREATED',
-        recipientName: 'customer1',
-        recipientPhone: '0912345678',
-        shippingAddress: '台北市信義區信義路五段7號',
-        postalCode: '110',
-        items: [
-          { productName: '商品A', quantity: 2, price: 500 },
-          { productName: '商品B', quantity: 1, price: 500 }
-        ],
-        shippingHistory: [
-          {
-            timestamp: new Date().toISOString(),
-            status: '訂單已建立',
-            description: '訂單已成功建立'
-          }
-        ],
-        shippingNotes: []
-      },
-      {
-        id: 2,
-        orderNo: 'ORD-002',
-        customerName: 'customer2',
-        customerPhone: '0923456789',
-        customerEmail: 'customer2@example.com',
-        createdAt: new Date().toISOString(),
-        totalAmount: 2000,
-        paymentStatus: 'SUCCESS',
-        shippingStatus: 'APPROVED',
-        recipientName: 'customer2',
-        recipientPhone: '0923456789',
-        shippingAddress: '台北市大安區敦化南路二段105號',
-        postalCode: '106',
-        items: [
-          { productName: '商品C', quantity: 1, price: 2000 }
-        ],
-        shippingHistory: [
-          {
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
-            status: '訂單已建立',
-            description: '訂單已成功建立'
-          },
-          {
-            timestamp: new Date().toISOString(),
-            status: '待出貨',
-            description: '訂單已標記為待出貨'
-          }
-        ],
-        shippingNotes: []
-      },
-      {
-        id: 3,
-        orderNo: 'ORD-003',
-        customerName: 'customer3',
-        customerPhone: '0934567890',
-        customerEmail: 'customer3@example.com',
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        totalAmount: 3000,
-        paymentStatus: 'SUCCESS',
-        shippingStatus: 'SHIPPED',
-        recipientName: 'customer3',
-        recipientPhone: '0934567890',
-        shippingAddress: '新北市板橋區文化路一段188號',
-        postalCode: '220',
-        items: [
-          { productName: '商品D', quantity: 3, price: 1000 }
-        ],
-        shippingHistory: [
-          {
-            timestamp: new Date(Date.now() - 172800000).toISOString(),
-            status: '訂單已建立',
-            description: '訂單已成功建立'
-          },
-          {
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
-            status: '待出貨',
-            description: '訂單已標記為待出貨'
-          },
-          {
-            timestamp: new Date().toISOString(),
-            status: '已出貨',
-            description: '訂單已出貨，追蹤號碼：TRK123456789'
-          }
-        ],
-        shippingNotes: []
-      }
-    ]
+    // 調用真實的後端 API 載入訂單
+    const params: any = {
+      page: 0,
+      size: 100
+    }
 
-    // 應用篩選
-    let filteredOrders = mockOrders.filter(order => order.paymentStatus === 'SUCCESS')
+    const response = await ordersApi.getOrders(params)
+    let loadedOrders = response.content || response || []
+
+    // 應用前端篩選
+    let filteredOrders = loadedOrders
 
     if (selectedShippingStatus.value) {
-      filteredOrders = filteredOrders.filter(order => order.shippingStatus === selectedShippingStatus.value)
+      filteredOrders = filteredOrders.filter((order: any) => order.shippingStatus === selectedShippingStatus.value)
     }
 
     if (selectedPaymentStatus.value) {
-      filteredOrders = filteredOrders.filter(order => order.paymentStatus === selectedPaymentStatus.value)
+      filteredOrders = filteredOrders.filter((order: any) => order.paymentStatus === selectedPaymentStatus.value)
     }
 
     if (searchKeyword.value) {
-      filteredOrders = filteredOrders.filter(order => {
+      filteredOrders = filteredOrders.filter((order: any) => {
         if (searchType.value === 'orderId') {
-          return order.orderNo.toLowerCase().includes(searchKeyword.value.toLowerCase())
+          return order.orderNo?.toLowerCase().includes(searchKeyword.value.toLowerCase())
         } else {
-          return order.customerName.toLowerCase().includes(searchKeyword.value.toLowerCase())
+          return order.customerName?.toLowerCase().includes(searchKeyword.value.toLowerCase())
         }
       })
     }
@@ -741,11 +633,6 @@ async function loadOrders() {
 }
 
 // 事件處理
-function handleLogout() {
-  authStore.logout()
-  router.push('/login')
-}
-
 function handleSearch() {
   loadOrders()
 }
@@ -887,6 +774,49 @@ async function confirmShip() {
   }
 }
 
+async function updateShippingStatusDirectly(order: any) {
+  try {
+    const currentStatus = order.status || 'CREATED'
+    let message = ''
+
+    console.log('Updating order:', order)
+    console.log('Current status:', currentStatus)
+
+    // 根據當前狀態決定下一個狀態並調用相應的 API
+    switch (currentStatus) {
+      case 'CREATED':
+        // CREATED -> APPROVED (待出貨)
+        await ordersApi.approveOrder(order.orderNo)
+        message = '訂單已標記為待出貨'
+        break
+      case 'PAID':
+        // PAID -> APPROVED (待出貨)
+        await ordersApi.approveOrder(order.orderNo)
+        message = '訂單已標記為待出貨'
+        break
+      case 'APPROVED':
+        // APPROVED -> SHIPPED (已出貨)
+        await ordersApi.shipOrder(order.id)
+        message = '訂單已標記為已出貨'
+        break
+      case 'SHIPPED':
+        // SHIPPED -> DELIVERED (已送達)
+        // 目前後端沒有 deliver API，先跳過
+        ElMessage.warning('已送達狀態需要手動更新')
+        return
+      default:
+        ElMessage.warning('無法從當前狀態進行更新')
+        return
+    }
+
+    showSuccessMessage(message)
+    await loadOrders()
+  } catch (error: any) {
+    console.error('Failed to update shipping status:', error)
+    ElMessage.error(error.response?.data?.message || '更新出貨狀態失敗')
+  }
+}
+
 async function confirmDeliver() {
   try {
     // 模擬 API 調用
@@ -1016,7 +946,9 @@ function getPaymentStatusLabel(status: string): string {
     'FAILED': '付款失敗',
     'REFUNDED': '已退款'
   }
-  return labels[status] || status
+  const result = labels[status] || status
+  console.log(`getPaymentStatusLabel(${status}) => ${result}`)
+  return result
 }
 
 function getPaymentStatusType(status: string): string {
@@ -1052,39 +984,60 @@ function getShippingStatusType(status: string): string {
   }
   return types[status] || 'info'
 }
+
+function getNextStatusLabel(currentStatus: string): string {
+  const nextStatusMap: Record<string, string> = {
+    'CREATED': '批准',
+    'PAID': '批准',
+    'APPROVED': '出貨',
+    'SHIPPED': '送達'
+  }
+  return nextStatusMap[currentStatus] || '下一步'
+}
+
+function getPaymentStatus(order: any): string {
+  if (!order) return 'PENDING'
+
+  // 從 payments 陣列取得最新的付款狀態
+  if (order.payments && order.payments.length > 0) {
+    return order.payments[order.payments.length - 1].status || 'PENDING'
+  }
+  // 或者根據訂單狀態推斷
+  if (order.status === 'PAID' || order.status === 'APPROVED' || order.status === 'SHIPPED') {
+    return 'SUCCESS'
+  }
+  return 'PENDING'
+}
+
+function getShippingStatus(order: any): string {
+  if (!order) return 'CREATED'
+  // 優先根據訂單狀態推斷（因為後端更新訂單狀態）
+  if (order.status === 'SHIPPED') {
+    return 'SHIPPED'
+  } else if (order.status === 'APPROVED') {
+    return 'APPROVED'
+  } else if (order.status === 'PAID') {
+    // 已付款但未批准，顯示已建立
+    return 'CREATED'
+  }
+  // 從 shipping 物件取得出貨狀態（作為備選）
+  if (order.shipping && order.shipping.status) {
+    return order.shipping.status
+  }
+  return 'CREATED'
+}
 </script>
 
 <style scoped>
-.admin-layout {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.header-bar {
-  background-color: #409eff;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-left h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
 .shipping-container {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
+}
+
+.completed-text {
+  color: #67C23A;
+  font-size: 14px;
 }
 
 h1 {
@@ -1377,33 +1330,41 @@ h1 {
 
 .status-pending {
   background-color: #e6a23c;
+  color: white;
 }
 
 .status-success {
   background-color: #67c23a;
+  color: white;
 }
 
 .status-failed {
   background-color: #f56c6c;
+  color: white;
 }
 
 .status-refunded {
   background-color: #909399;
+  color: white;
 }
 
 .shipping-pending {
   background-color: #e6a23c;
+  color: white;
 }
 
 .shipping-processing {
   background-color: #409eff;
+  color: white;
 }
 
 .shipping-shipped {
   background-color: #409eff;
+  color: white;
 }
 
 .shipping-delivered {
   background-color: #67c23a;
+  color: white;
 }
 </style>

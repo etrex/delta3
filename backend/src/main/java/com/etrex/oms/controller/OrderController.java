@@ -5,6 +5,7 @@ package com.etrex.oms.controller;
 
 import com.etrex.oms.dto.*;
 import com.etrex.oms.entity.User;
+import com.etrex.oms.exception.BusinessException;
 import com.etrex.oms.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -171,7 +172,7 @@ public class OrderController {
                 SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("No authenticated user found");
+            throw new BusinessException("No authenticated user found");
         }
 
         return (User) authentication.getPrincipal();

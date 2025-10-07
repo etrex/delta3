@@ -22,38 +22,52 @@
         <div class="order-items" data-cy="order-items">
           <h3>商品明細</h3>
           <div
-            v-for="(item, index) in items"
+            v-for="item in items"
             :key="item.id"
             class="order-item"
+            :class="{ 'stock-insufficient': isStockInsufficient(item) }"
             data-cy="order-item"
           >
             <div class="item-info">
-              <span class="item-name" data-cy="item-name">{{ item.productName }}</span>
-              <span v-if="editingIndex !== index" class="item-quantity" data-cy="item-quantity">x {{ item.quantity }}</span>
-              <div v-else class="quantity-edit">
-                <el-input-number
-                  v-model="editQuantity"
-                  :min="1"
-                  data-cy="quantity-input"
-                  size="small"
-                />
-                <el-button
-                  data-cy="update-quantity-btn"
-                  size="small"
-                  type="primary"
-                  @click="updateQuantity(item.id!)"
-                >更新</el-button>
+              <div class="item-main-row">
+                <span class="item-name" data-cy="item-name">{{ item.productName }}</span>
+                <div class="quantity-controls">
+                  <el-button
+                    size="small"
+                    data-cy="decrease-quantity-btn"
+                    @click="decreaseQuantity(item.id!)"
+                    :disabled="item.quantity <= 1"
+                  >-</el-button>
+                  <el-input-number
+                    :model-value="item.quantity"
+                    :min="1"
+                    :max="getAvailableStock(item.productId)"
+                    data-cy="quantity-input"
+                    size="small"
+                    @change="(value) => updateQuantity(item.id!, value)"
+                    :controls="false"
+                  />
+                  <el-button
+                    size="small"
+                    data-cy="increase-quantity-btn"
+                    @click="increaseQuantity(item.id!)"
+                    :disabled="item.quantity >= getAvailableStock(item.productId)"
+                  >+</el-button>
+                </div>
+              </div>
+              <div v-if="isStockInsufficient(item)" class="stock-warning" data-cy="stock-warning">
+                ⚠️ 庫存不足（目前庫存：{{ getAvailableStock(item.productId) }}）
               </div>
             </div>
             <div class="item-prices">
               <span class="item-price" data-cy="item-price">${{ item.price.toFixed(2) }}</span>
               <span class="item-subtotal" data-cy="item-subtotal">${{ (item.price * item.quantity).toFixed(2) }}</span>
               <el-button
-                v-if="editingIndex !== index"
-                data-cy="edit-quantity-btn"
+                data-cy="remove-item-btn"
                 size="small"
-                @click="startEdit(index, item.quantity)"
-              >修改數量</el-button>
+                type="danger"
+                @click="removeItem(item.id!)"
+              >移除</el-button>
             </div>
           </div>
         </div>
@@ -67,10 +81,10 @@
             <span>訂單總額</span>
             <span data-cy="total-amount">${{ totalAmount.toFixed(2) }}</span>
           </div>
-          <div class="order-status-info">
-            <span>訂單狀態：</span>
-            <span data-cy="order-status">CREATED</span>
-          </div>
+        </div>
+
+        <div v-if="hasStockIssues" class="checkout-warning" data-cy="checkout-warning">
+          ⚠️ 請調整商品數量至庫存範圍內才能結帳
         </div>
 
         <div class="action-buttons">
@@ -79,6 +93,7 @@
             type="primary"
             data-cy="confirm-order-btn"
             :loading="isCreatingOrder"
+            :disabled="hasStockIssues"
             @click="confirmOrder"
           >確認訂單</el-button>
         </div>
@@ -93,6 +108,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import productsApi from '@/api/products'
+import type { Product } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -102,23 +119,62 @@ const isCreatingOrder = ref(false)
 const errorMessage = ref('')
 const errorDetails = ref('')
 const successMessage = ref('')
-const editingIndex = ref<number | null>(null)
-const editQuantity = ref(1)
+const productStocks = ref<Record<number, number>>({})
 
 const items = computed(() => cartStore.items)
 const totalAmount = computed(() => cartStore.totalAmount)
 
+const hasStockIssues = computed(() => {
+  return items.value.some(item => isStockInsufficient(item))
+})
+
 onMounted(async () => {
   await cartStore.loadCart()
 
-  // 如果購物車是空的，重導向到購物車頁面
+  // 如果購物車是空的，重導向到商品頁面
   if (items.value.length === 0) {
     errorMessage.value = '購物車不能為空'
     setTimeout(() => {
-      router.push('/cart')
+      router.push('/products')
     }, 1500)
+    return
   }
+
+  // 載入商品庫存資訊
+  await loadProductStocks()
 })
+
+async function loadProductStocks() {
+  try {
+    const response = await productsApi.getProducts()
+    console.log('Products API response:', response)
+    // axios 攔截器已經自動提取 response.data，所以直接使用 response.content
+    const products = response.content || response || []
+    console.log('Products:', products)
+
+    // 建立 productId -> stock 的對應
+    productStocks.value = {}
+    products.forEach((product: Product) => {
+      if (product.id) {
+        productStocks.value[product.id] = product.stock
+      }
+    })
+    console.log('Product stocks loaded:', productStocks.value)
+  } catch (error) {
+    console.error('Failed to load product stocks:', error)
+  }
+}
+
+function getAvailableStock(productId: number): number {
+  return productStocks.value[productId] || 999
+}
+
+function isStockInsufficient(item: any): boolean {
+  const availableStock = getAvailableStock(item.productId)
+  const result = item.quantity > availableStock
+  console.log(`Stock check for ${item.productName}: quantity=${item.quantity}, stock=${availableStock}, insufficient=${result}`)
+  return result
+}
 
 async function confirmOrder() {
   if (items.value.length === 0) {
@@ -160,22 +216,54 @@ async function confirmOrder() {
 }
 
 function goBackToCart() {
-  router.push('/cart')
+  router.push('/products')
 }
 
-function startEdit(index: number, quantity: number) {
-  editingIndex.value = index
-  editQuantity.value = quantity
-}
-
-async function updateQuantity(itemId: number) {
+async function updateQuantity(itemId: number, quantity: number) {
   try {
-    await cartStore.updateCartItem(itemId, editQuantity.value)
-    editingIndex.value = null
+    await cartStore.updateCartItem(itemId, quantity)
     ElMessage.success('已更新數量')
   } catch (error) {
     console.error('Failed to update quantity:', error)
     ElMessage.error('更新數量失敗')
+  }
+}
+
+async function increaseQuantity(itemId: number) {
+  const item = items.value.find(i => i.id === itemId)
+  if (item) {
+    const newQuantity = item.quantity + 1
+    const availableStock = getAvailableStock(item.productId)
+    if (newQuantity > availableStock) {
+      ElMessage.warning(`庫存不足，目前庫存：${availableStock}`)
+      return
+    }
+    await updateQuantity(itemId, newQuantity)
+  }
+}
+
+async function decreaseQuantity(itemId: number) {
+  const item = items.value.find(i => i.id === itemId)
+  if (item && item.quantity > 1) {
+    await updateQuantity(itemId, item.quantity - 1)
+  }
+}
+
+async function removeItem(itemId: number) {
+  try {
+    await cartStore.removeCartItem(itemId)
+    ElMessage.success('已移除商品')
+
+    // 如果購物車空了，返回商品頁面
+    if (items.value.length === 0) {
+      errorMessage.value = '購物車已空'
+      setTimeout(() => {
+        router.push('/products')
+      }, 1500)
+    }
+  } catch (error) {
+    console.error('Failed to remove item:', error)
+    ElMessage.error('移除商品失敗')
   }
 }
 </script>
@@ -244,18 +332,53 @@ h1 {
   border-radius: 4px;
 }
 
+.order-item.stock-insufficient {
+  background-color: #fef0f0;
+  border: 1px solid #f56c6c;
+}
+
 .item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.item-main-row {
   display: flex;
   gap: 16px;
   align-items: center;
 }
 
+.stock-warning {
+  color: #f56c6c;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.checkout-warning {
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background-color: #fef0f0;
+  color: #f56c6c;
+  border: 1px solid #f56c6c;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 .item-name {
   font-weight: 500;
+  min-width: 120px;
 }
 
 .item-quantity {
   color: #666;
+}
+
+.quantity-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .item-prices {

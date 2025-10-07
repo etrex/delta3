@@ -1,27 +1,5 @@
 <template>
-  <div class="admin-layout">
-    <!-- Header with logout button -->
-    <el-header class="header-bar">
-      <div class="header-left">
-        <h2>智能訂單管理系統 - Admin</h2>
-      </div>
-      <div class="header-right">
-        <el-space>
-          <span data-cy="user-role">Admin</span>
-          <span data-cy="username-display">{{ authStore.user?.username }}</span>
-          <el-button
-            type="danger"
-            plain
-            data-cy="logout-btn"
-            @click="handleLogout"
-          >
-            登出
-          </el-button>
-        </el-space>
-      </div>
-    </el-header>
-
-    <div class="orders-container">
+  <div class="orders-container">
       <h1>訂單管理</h1>
 
       <!-- 搜尋與篩選 -->
@@ -157,10 +135,6 @@
             </div>
           </template>
         </el-table-column>
-
-        <template #default="scope">
-          <div class="table-row" data-cy="order-row"></div>
-        </template>
       </el-table>
 
       <!-- 分頁 -->
@@ -188,7 +162,6 @@
           @click="currentPage++"
         >下一頁</el-button>
       </div>
-    </div>
 
     <!-- 編輯狀態對話框 -->
     <el-dialog
@@ -250,11 +223,6 @@ const totalPages = ref(0)
 const showStatusDialog = ref(false)
 const selectedOrder = ref<Order | null>(null)
 const newStatus = ref('')
-
-const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
-}
 
 onMounted(async () => {
   await loadOrders()
@@ -427,32 +395,6 @@ function getStatusType(status: string): string {
 </script>
 
 <style scoped>
-.admin-layout {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.header-bar {
-  background-color: #409eff;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-left h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
 .orders-container {
   max-width: 1400px;
   margin: 0 auto;

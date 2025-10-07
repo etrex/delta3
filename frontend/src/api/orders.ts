@@ -25,6 +25,10 @@ export default {
     return axios.post(`/orders/${id}/cancel`)
   },
 
+  approveOrder(orderNo: string) {
+    return axios.post(`/orders/by-order-no/${orderNo}/approve`)
+  },
+
   shipOrder(id: number) {
     return axios.post(`/orders/${id}/ship`)
   }
