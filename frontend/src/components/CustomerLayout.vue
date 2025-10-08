@@ -5,7 +5,7 @@
   <el-container class="layout-container">
     <el-header class="header">
       <div class="header-content">
-        <h2 class="site-title" @click="goToHome">電商購物平台</h2>
+        <h2 class="site-title" @click="goToHome">卡米購</h2>
         <div class="header-actions">
           <router-link to="/products" class="nav-link">
             商品列表
