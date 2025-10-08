@@ -5,7 +5,7 @@
   <el-container class="layout-container">
     <el-header class="header">
       <div class="header-content">
-        <h2>訂單管理系統 - 管理後台</h2>
+        <h2>電商購物平台 - 管理系統</h2>
         <div class="header-actions">
           <router-link to="/admin/products" class="nav-link">
             商品管理
@@ -48,7 +48,7 @@ function handleLogout() {
 }
 
 .header {
-  background-color: #E6A23C;
+  background-color: #409EFF;
   color: white;
   display: flex;
   align-items: center;
