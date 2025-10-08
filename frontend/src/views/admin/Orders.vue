@@ -110,7 +110,7 @@
 
         <el-table-column prop="totalAmount" label="總金額" width="150" data-cy="table-header">
           <template #default="scope">
-            <span data-cy="order-total">${{ scope.row.totalAmount?.toFixed(2) }}</span>
+            <span data-cy="order-total">${{ scope.row.totalAmount?.toFixed(0) }}</span>
           </template>
         </el-table-column>
 

@@ -105,7 +105,7 @@
           </div>
 
           <div class="order-total" data-cy="order-total">
-            ${{ order.totalAmount?.toFixed(2) }}
+            ${{ order.totalAmount?.toFixed(0) }}
           </div>
         </div>
       </el-card>

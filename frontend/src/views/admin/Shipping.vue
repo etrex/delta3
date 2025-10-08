@@ -131,7 +131,7 @@
                 </div>
                 <div class="order-meta">
                   <span data-cy="order-date">{{ formatDateTime(scope.row.createdAt) }}</span>
-                  <span data-cy="total-amount" class="amount">NT$ {{ scope.row.totalAmount?.toFixed(2) }}</span>
+                  <span data-cy="total-amount" class="amount">NT$ {{ scope.row.totalAmount?.toFixed(0) }}</span>
                 </div>
               </div>
             </template>
@@ -320,7 +320,7 @@
             <el-descriptions-item label="訂單日期">{{ formatDateTime(currentOrder.createdAt) }}</el-descriptions-item>
             <el-descriptions-item label="訂單狀態">{{ getShippingStatusLabel(currentOrder.shippingStatus) }}</el-descriptions-item>
             <el-descriptions-item label="付款狀態">{{ getPaymentStatusLabel(currentOrder.paymentStatus) }}</el-descriptions-item>
-            <el-descriptions-item label="總金額">NT$ {{ currentOrder.totalAmount?.toFixed(2) }}</el-descriptions-item>
+            <el-descriptions-item label="總金額">NT$ {{ currentOrder.totalAmount?.toFixed(0) }}</el-descriptions-item>
           </el-descriptions>
         </div>
 
@@ -353,12 +353,12 @@
             <el-table-column prop="quantity" label="數量" width="100" />
             <el-table-column prop="price" label="單價" width="120">
               <template #default="scope">
-                NT$ {{ scope.row.price?.toFixed(2) }}
+                NT$ {{ scope.row.price?.toFixed(0) }}
               </template>
             </el-table-column>
             <el-table-column label="小計" width="120">
               <template #default="scope">
-                NT$ {{ (scope.row.quantity * scope.row.price)?.toFixed(2) }}
+                NT$ {{ (scope.row.quantity * scope.row.price)?.toFixed(0) }}
               </template>
             </el-table-column>
           </el-table>

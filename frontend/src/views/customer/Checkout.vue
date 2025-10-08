@@ -60,8 +60,8 @@
               </div>
             </div>
             <div class="item-prices">
-              <span class="item-price" data-cy="item-price">${{ item.price.toFixed(2) }}</span>
-              <span class="item-subtotal" data-cy="item-subtotal">${{ (item.price * item.quantity).toFixed(2) }}</span>
+              <span class="item-price" data-cy="item-price">${{ item.price.toFixed(0) }}</span>
+              <span class="item-subtotal" data-cy="item-subtotal">${{ (item.price * item.quantity).toFixed(0) }}</span>
               <el-button
                 data-cy="remove-item-btn"
                 size="small"
@@ -75,11 +75,11 @@
         <div class="order-total-section">
           <div class="total-row">
             <span>商品總計</span>
-            <span data-cy="item-total">${{ totalAmount.toFixed(2) }}</span>
+            <span data-cy="item-total">${{ totalAmount.toFixed(0) }}</span>
           </div>
           <div class="total-row total">
             <span>訂單總額</span>
-            <span data-cy="total-amount">${{ totalAmount.toFixed(2) }}</span>
+            <span data-cy="total-amount">${{ totalAmount.toFixed(0) }}</span>
           </div>
         </div>
 

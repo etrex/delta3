@@ -12,7 +12,7 @@
         <div class="product-info">
           <h3 class="product-name" data-cy="product-name">{{ product.name }}</h3>
           <p class="product-description">{{ product.description }}</p>
-          <div class="product-price" data-cy="product-price">${{ product.price.toFixed(2) }}</div>
+          <div class="product-price" data-cy="product-price">${{ product.price.toFixed(0) }}</div>
           <div class="product-stock" data-cy="product-stock">庫存: {{ product.stock }}</div>
           <el-button
             v-if="product.stock > 0"
@@ -35,7 +35,7 @@
     >
       <div v-if="selectedProduct">
         <p>商品：{{ selectedProduct.name }}</p>
-        <p>價格：${{ selectedProduct.price.toFixed(2) }}</p>
+        <p>價格：${{ selectedProduct.price.toFixed(0) }}</p>
         <p>可用庫存：{{ selectedProduct.stock }}</p>
 
         <el-form :model="form" :rules="rules" ref="formRef">
@@ -50,7 +50,7 @@
         </el-form>
 
         <div class="order-summary">
-          <p>總計：${{ (selectedProduct.price * form.quantity).toFixed(2) }}</p>
+          <p>總計：${{ (selectedProduct.price * form.quantity).toFixed(0) }}</p>
         </div>
 
         <div v-if="errorMessage" class="error-message" data-cy="error-message">

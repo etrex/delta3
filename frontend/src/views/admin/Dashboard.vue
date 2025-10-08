@@ -36,7 +36,7 @@
             <el-icon :size="40"><Money /></el-icon>
           </div>
           <div class="stat-content">
-            <div class="stat-value">${{ stats.totalRevenue.toFixed(2) }}</div>
+            <div class="stat-value">${{ stats.totalRevenue.toFixed(0) }}</div>
             <div class="stat-label">總營收</div>
           </div>
         </el-card>
@@ -89,7 +89,7 @@
             <el-table-column prop="orderNo" label="訂單號" width="120" />
             <el-table-column prop="totalAmount" label="金額" width="100">
               <template #default="{ row }">
-                ${{ row.totalAmount.toFixed(2) }}
+                ${{ row.totalAmount.toFixed(0) }}
               </template>
             </el-table-column>
             <el-table-column prop="status" label="狀態" width="100">

@@ -15,7 +15,7 @@
       <el-table-column prop="description" label="商品描述" />
       <el-table-column prop="price" label="價格" width="120">
         <template #default="{ row }">
-          ${{ row.price.toFixed(2) }}
+          ${{ row.price.toFixed(0) }}
         </template>
       </el-table-column>
       <el-table-column prop="stock" label="庫存" width="100" />

@@ -25,7 +25,7 @@
           下單時間: {{ formatDateTime(order.createdAt) }}
         </div>
         <div class="order-total" data-cy="order-total">
-          訂單金額: ${{ order.totalAmount?.toFixed(2) }}
+          訂單金額: ${{ order.totalAmount?.toFixed(0) }}
         </div>
       </div>
     </el-card>
@@ -52,10 +52,10 @@
               <div class="item-details">
                 <div class="product-name" data-cy="product-name">{{ item.productName }}</div>
                 <div class="item-meta">
-                  <span class="item-price" data-cy="item-price">${{ item.price?.toFixed(2) }}</span>
+                  <span class="item-price" data-cy="item-price">${{ item.price?.toFixed(0) }}</span>
                   <span class="item-quantity" data-cy="item-quantity">x {{ item.quantity }}</span>
                   <span class="item-subtotal" data-cy="item-subtotal">
-                    ${{ ((item.price || 0) * item.quantity).toFixed(2) }}
+                    ${{ ((item.price || 0) * item.quantity).toFixed(0) }}
                   </span>
                 </div>
               </div>
@@ -85,15 +85,15 @@
           </template>
           <div class="summary-row">
             <span>商品總計</span>
-            <span data-cy="items-total">${{ order.totalAmount?.toFixed(2) }}</span>
+            <span data-cy="items-total">${{ order.totalAmount?.toFixed(0) }}</span>
           </div>
           <div class="summary-row">
             <span>運費</span>
-            <span data-cy="shipping-fee">$0.00</span>
+            <span data-cy="shipping-fee">$0</span>
           </div>
           <div class="summary-row total">
             <span>訂單總額</span>
-            <span data-cy="total-amount">${{ order.totalAmount?.toFixed(2) }}</span>
+            <span data-cy="total-amount">${{ order.totalAmount?.toFixed(0) }}</span>
           </div>
         </el-card>
 
@@ -117,7 +117,7 @@
               data-cy="payment-record"
             >
               <div data-cy="payment-method">付款方式: {{ getPaymentMethodLabel(payment.paymentMethod) }}</div>
-              <div data-cy="payment-amount">金額: ${{ payment.amount?.toFixed(2) }}</div>
+              <div data-cy="payment-amount">金額: ${{ payment.amount?.toFixed(0) }}</div>
               <div data-cy="payment-date">時間: {{ formatDateTime(payment.paidAt) }}</div>
               <div v-if="payment.transactionId" data-cy="transaction-id">
                 交易號: {{ payment.transactionId }}
@@ -173,7 +173,7 @@
       </div>
 
       <div class="payment-amount-display" data-cy="payment-amount">
-        付款金額: ${{ order.totalAmount?.toFixed(2) }}
+        付款金額: ${{ order.totalAmount?.toFixed(0) }}
       </div>
 
       <!-- 信用卡表單 -->
@@ -235,7 +235,7 @@
       <div v-if="selectedPaymentMethod === 'BANK_TRANSFER'" class="bank-transfer-info" data-cy="bank-transfer-info">
         <p data-cy="bank-account">銀行帳號: 1234-5678-9012</p>
         <p data-cy="bank-code">銀行代碼: 808</p>
-        <p data-cy="transfer-amount">轉帳金額: ${{ order.totalAmount?.toFixed(2) }}</p>
+        <p data-cy="transfer-amount">轉帳金額: ${{ order.totalAmount?.toFixed(0) }}</p>
         <p data-cy="reference-number">備註: 訂單編號 {{ order.id }}</p>
       </div>
 

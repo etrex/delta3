@@ -61,7 +61,7 @@
               >+</el-button>
             </div>
             <div class="item-subtotal" data-cy="item-subtotal">
-              ${{ (item.price * item.quantity).toFixed(2) }}
+              ${{ (item.price * item.quantity).toFixed(0) }}
             </div>
             <el-button
               data-cy="remove-item-btn"
@@ -73,7 +73,7 @@
         </div>
 
         <div class="cart-total" data-cy="cart-total">
-          總計: ${{ totalAmount.toFixed(2) }}
+          總計: ${{ totalAmount.toFixed(0) }}
         </div>
 
         <el-button

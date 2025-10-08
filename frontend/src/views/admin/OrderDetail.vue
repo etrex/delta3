@@ -16,7 +16,7 @@
       <div class="order-meta">
         <div class="customer-info">客戶ID: {{ order.customerId }}</div>
         <div class="order-date">下單時間: {{ formatDateTime(order.createdAt) }}</div>
-        <div class="order-total">訂單金額: ${{ order.totalAmount?.toFixed(2) }}</div>
+        <div class="order-total">訂單金額: ${{ order.totalAmount?.toFixed(0) }}</div>
       </div>
     </el-card>
 
@@ -36,10 +36,10 @@
               <div class="item-details">
                 <div class="product-name">{{ item.productName }}</div>
                 <div class="item-meta">
-                  <span class="item-price">${{ item.price?.toFixed(2) }}</span>
+                  <span class="item-price">${{ item.price?.toFixed(0) }}</span>
                   <span class="item-quantity">x {{ item.quantity }}</span>
                   <span class="item-subtotal">
-                    ${{ ((item.price || 0) * item.quantity).toFixed(2) }}
+                    ${{ ((item.price || 0) * item.quantity).toFixed(0) }}
                   </span>
                 </div>
               </div>
@@ -69,15 +69,15 @@
           </template>
           <div class="summary-row">
             <span>商品總計</span>
-            <span>${{ order.totalAmount?.toFixed(2) }}</span>
+            <span>${{ order.totalAmount?.toFixed(0) }}</span>
           </div>
           <div class="summary-row">
             <span>運費</span>
-            <span>$0.00</span>
+            <span>$0</span>
           </div>
           <div class="summary-row total">
             <span>訂單總額</span>
-            <span>${{ order.totalAmount?.toFixed(2) }}</span>
+            <span>${{ order.totalAmount?.toFixed(0) }}</span>
           </div>
         </el-card>
 
@@ -96,7 +96,7 @@
             <h4>付款記錄</h4>
             <div v-for="payment in order.payments" :key="payment.id" class="payment-record">
               <div>付款方式: {{ getPaymentMethodLabel(payment.paymentMethod) }}</div>
-              <div>金額: ${{ payment.amount?.toFixed(2) }}</div>
+              <div>金額: ${{ payment.amount?.toFixed(0) }}</div>
               <div>時間: {{ formatDateTime(payment.paidAt) }}</div>
               <div v-if="payment.transactionId">
                 交易號: {{ payment.transactionId }}
