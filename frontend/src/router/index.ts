@@ -12,11 +12,11 @@ const router = createRouter({
       name: 'Login',
       component: () => import('@/views/Login.vue')
     },
+    // Customer routes
     {
       path: '/',
-      name: 'Layout',
-      component: () => import('@/components/Layout.vue'),
-      redirect: '/dashboard',
+      component: () => import('@/components/CustomerLayout.vue'),
+      redirect: '/products',
       children: [
         {
           path: 'dashboard',
@@ -42,35 +42,44 @@ const router = createRouter({
           path: 'orders/:id',
           name: 'OrderDetail',
           component: () => import('@/views/customer/OrderDetail.vue')
+        }
+      ]
+    },
+    // Admin routes
+    {
+      path: '/admin',
+      component: () => import('@/components/AdminLayout.vue'),
+      redirect: '/admin/products',
+      meta: { requiresAdmin: true },
+      children: [
+        {
+          path: 'products',
+          name: 'ProductManagement',
+          component: () => import('@/views/admin/ProductManagement.vue'),
+          meta: { requiresAdmin: true }
         },
         {
-          path: 'admin/orders',
+          path: 'orders',
           name: 'AdminOrders',
           component: () => import('@/views/admin/Orders.vue'),
           meta: { requiresAdmin: true }
         },
         {
-          path: 'admin/orders/:id',
+          path: 'orders/:id',
           name: 'AdminOrderDetail',
           component: () => import('@/views/admin/OrderDetail.vue'),
           meta: { requiresAdmin: true }
         },
         {
-          path: 'admin/shipping',
+          path: 'shipping',
           name: 'Shipping',
           component: () => import('@/views/admin/Shipping.vue'),
           meta: { requiresAdmin: true }
         },
         {
-          path: 'admin/shipping/reports',
+          path: 'shipping/reports',
           name: 'ShippingReports',
           component: () => import('@/views/admin/ShippingReports.vue'),
-          meta: { requiresAdmin: true }
-        },
-        {
-          path: 'admin/products',
-          name: 'ProductManagement',
-          component: () => import('@/views/admin/ProductManagement.vue'),
           meta: { requiresAdmin: true }
         }
       ]
@@ -84,7 +93,7 @@ router.beforeEach((to, from, next) => {
   if (to.path !== '/login' && !authStore.isAuthenticated) {
     next('/login')
   } else if (to.meta.requiresAdmin && authStore.user?.role !== 'ADMIN') {
-    next('/dashboard')
+    next('/products')
   } else {
     next()
   }

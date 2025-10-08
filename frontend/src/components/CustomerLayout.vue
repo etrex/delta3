@@ -1,26 +1,20 @@
+<!--
+  Copyright (c) 2025 Etrex Kuo. All rights reserved.
+-->
 <template>
   <el-container class="layout-container">
     <el-header class="header">
       <div class="header-content">
         <h2>訂單管理系統</h2>
         <div class="header-actions">
-          <router-link v-if="authStore.isCustomer" to="/products" class="nav-link">
+          <router-link to="/products" class="nav-link">
             商品列表
           </router-link>
-          <router-link v-if="authStore.isCustomer" to="/orders" class="nav-link">
+          <router-link to="/orders" class="nav-link">
             我的訂單
           </router-link>
-          <router-link v-if="authStore.isAdmin" to="/admin/products" class="nav-link">
-            商品管理
-          </router-link>
-          <router-link v-if="authStore.isAdmin" to="/admin/orders" class="nav-link">
-            訂單管理
-          </router-link>
-          <router-link v-if="authStore.isAdmin" to="/admin/shipping" class="nav-link">
-            出貨管理
-          </router-link>
 
-          <div v-if="authStore.isCustomer" class="cart-icon" data-cy="cart-icon" @click="showCartDrawer">
+          <div class="cart-icon" data-cy="cart-icon" @click="showCartDrawer">
             <el-badge :value="totalItems" :hidden="totalItems === 0">
               <el-icon :size="24"><ShoppingCart /></el-icon>
             </el-badge>
@@ -128,14 +122,12 @@ const totalAmount = computed(() => cartStore.totalAmount)
 const totalItems = computed(() => cartStore.totalItems)
 
 onMounted(async () => {
-  if (authStore.isCustomer) {
-    await cartStore.loadCart()
-  }
+  await cartStore.loadCart()
 })
 
 // Watch for cart drawer opening to reload cart
 watch(cartDrawerVisible, async (newValue) => {
-  if (newValue && authStore.isCustomer) {
+  if (newValue) {
     await cartStore.loadCart()
   }
 })

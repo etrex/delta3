@@ -76,7 +76,12 @@ const handleLogin = async () => {
 
       if (success) {
         ElMessage.success('Login successful!')
-        router.push('/dashboard')
+        // Redirect based on user role
+        if (authStore.user?.role === 'ADMIN') {
+          router.push('/admin/products')
+        } else {
+          router.push('/products')
+        }
       } else {
         ElMessage.error('Invalid username or password')
       }
