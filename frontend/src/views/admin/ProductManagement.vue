@@ -69,8 +69,8 @@
           <el-input-number
             v-model="form.price"
             :min="0"
-            :precision="2"
-            :step="0.01"
+            :precision="0"
+            :step="1"
             placeholder="請輸入價格"
           />
         </el-form-item>
