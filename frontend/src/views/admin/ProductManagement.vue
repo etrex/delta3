@@ -11,8 +11,7 @@
     <!-- 商品列表 -->
     <el-table :data="products" stripe style="width: 100%">
       <el-table-column prop="id" label="商品編號" width="100" />
-      <el-table-column prop="name" label="商品名稱" width="200" />
-      <el-table-column prop="description" label="商品描述" />
+      <el-table-column prop="name" label="商品名稱" />
       <el-table-column prop="price" label="價格" width="120">
         <template #default="{ row }">
           ${{ row.price.toFixed(0) }}
@@ -26,13 +25,9 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="建立時間" width="180">
+      <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
-          {{ formatDate(row.createdAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
-        <template #default="{ row }">
+          <el-button size="small" @click="showDetailDialog(row)">查看</el-button>
           <el-button size="small" type="primary" @click="showEditDialog(row)">編輯</el-button>
           <el-button
             size="small"
@@ -98,6 +93,46 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 查看商品詳細資訊對話框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="商品詳細資訊"
+      width="600px"
+    >
+      <div v-if="selectedProduct" class="product-detail">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="商品編號">
+            {{ selectedProduct.id }}
+          </el-descriptions-item>
+          <el-descriptions-item label="商品名稱">
+            {{ selectedProduct.name }}
+          </el-descriptions-item>
+          <el-descriptions-item label="商品描述">
+            {{ selectedProduct.description || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="價格">
+            ${{ selectedProduct.price.toFixed(0) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="庫存">
+            {{ selectedProduct.stock }}
+          </el-descriptions-item>
+          <el-descriptions-item label="狀態">
+            <el-tag :type="selectedProduct.status === 'ACTIVE' ? 'success' : 'info'">
+              {{ selectedProduct.status === 'ACTIVE' ? '上架' : '下架' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="建立時間">
+            {{ formatDate(selectedProduct.createdAt) }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">關閉</el-button>
+        <el-button type="primary" @click="editFromDetail">編輯</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -109,10 +144,12 @@ import type { Product } from '@/types'
 
 const products = ref<Product[]>([])
 const dialogVisible = ref(false)
+const detailDialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
 const formRef = ref<FormInstance>()
 const isSubmitting = ref(false)
 const editingId = ref<number | null>(null)
+const selectedProduct = ref<Product | null>(null)
 
 const form = reactive({
   name: '',
@@ -164,6 +201,18 @@ function showAddDialog() {
   editingId.value = null
   resetForm()
   dialogVisible.value = true
+}
+
+function showDetailDialog(product: Product) {
+  selectedProduct.value = product
+  detailDialogVisible.value = true
+}
+
+function editFromDetail() {
+  if (selectedProduct.value) {
+    detailDialogVisible.value = false
+    showEditDialog(selectedProduct.value)
+  }
 }
 
 function showEditDialog(product: Product) {
@@ -281,5 +330,9 @@ function formatDate(dateString: string): string {
 h1 {
   margin: 0;
   color: #333;
+}
+
+.product-detail {
+  padding: 20px 0;
 }
 </style>
