@@ -31,9 +31,17 @@ public class ProductService {
     public Page<ProductDTO> getProducts(String keyword, Product.Status status, Pageable pageable) {
         Page<Product> products;
         if (keyword != null && !keyword.isEmpty()) {
-            products = productRepository.searchByKeywordAndStatus(keyword, status, pageable);
+            if (status != null) {
+                products = productRepository.searchByKeywordAndStatus(keyword, status, pageable);
+            } else {
+                products = productRepository.searchByKeyword(keyword, pageable);
+            }
         } else {
-            products = productRepository.findByStatus(status, pageable);
+            if (status != null) {
+                products = productRepository.findByStatus(status, pageable);
+            } else {
+                products = productRepository.findAll(pageable);
+            }
         }
         return products.map(this::convertToDTO);
     }
@@ -45,7 +53,6 @@ public class ProductService {
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setStock(productDTO.getStock());
-        product.setStockThreshold(productDTO.getStockThreshold());
         product.setStatus(Product.Status.valueOf(productDTO.getStatus()));
 
         Product saved = productRepository.save(product);
@@ -61,9 +68,6 @@ public class ProductService {
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setStock(productDTO.getStock());
-        if (productDTO.getStockThreshold() != null) {
-            product.setStockThreshold(productDTO.getStockThreshold());
-        }
         product.setStatus(Product.Status.valueOf(productDTO.getStatus()));
 
         Product updated = productRepository.save(product);
@@ -98,7 +102,6 @@ public class ProductService {
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setStock(product.getStock());
-        dto.setStockThreshold(product.getStockThreshold());
         dto.setStatus(product.getStatus().name());
         dto.setCreatedAt(product.getCreatedAt());
         return dto;

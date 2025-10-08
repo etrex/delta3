@@ -83,14 +83,6 @@
           />
         </el-form-item>
 
-        <el-form-item label="庫存門檻" prop="stockThreshold">
-          <el-input-number
-            v-model="form.stockThreshold"
-            :min="0"
-            placeholder="低於此數量時提醒"
-          />
-        </el-form-item>
-
         <el-form-item label="狀態" prop="status">
           <el-select v-model="form.status" placeholder="請選擇狀態">
             <el-option label="上架" value="ACTIVE" />
@@ -127,7 +119,6 @@ const form = reactive({
   description: '',
   price: 0,
   stock: 0,
-  stockThreshold: 5,
   status: 'ACTIVE'
 })
 
@@ -147,9 +138,6 @@ const rules = {
     { required: true, message: '請輸入庫存', trigger: 'blur' },
     { type: 'number', min: 0, message: '庫存不能為負數', trigger: 'blur' }
   ],
-  stockThreshold: [
-    { type: 'number', min: 0, message: '庫存門檻不能為負數', trigger: 'blur' }
-  ],
   status: [
     { required: true, message: '請選擇狀態', trigger: 'change' }
   ]
@@ -162,7 +150,8 @@ onMounted(async () => {
 async function loadProducts() {
   try {
     // Admin can see all products including INACTIVE ones
-    const response = await productsApi.getProducts()
+    // Don't pass status parameter to get all products
+    const response = await productsApi.getProducts({})
     products.value = response.content || response || []
   } catch (error) {
     console.error('Failed to load products:', error)
@@ -186,7 +175,6 @@ function showEditDialog(product: Product) {
   form.description = product.description || ''
   form.price = product.price
   form.stock = product.stock
-  form.stockThreshold = product.stockThreshold || 5
   form.status = product.status
 
   dialogVisible.value = true
@@ -197,7 +185,6 @@ function resetForm() {
   form.description = ''
   form.price = 0
   form.stock = 0
-  form.stockThreshold = 5
   form.status = 'ACTIVE'
   formRef.value?.clearValidate()
 }
@@ -214,7 +201,6 @@ async function handleSubmit() {
       description: form.description,
       price: form.price,
       stock: form.stock,
-      stockThreshold: form.stockThreshold,
       status: form.status
     }
 

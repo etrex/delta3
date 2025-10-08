@@ -25,12 +25,12 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Get all products", description = "Get paginated list of active products")
+    @Operation(summary = "Get all products", description = "Get paginated list of products")
     public ResponseEntity<Page<ProductDTO>> getProducts(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false, defaultValue = "ACTIVE") String status,
+            @RequestParam(required = false) String status,
             Pageable pageable) {
-        Product.Status productStatus = Product.Status.valueOf(status);
+        Product.Status productStatus = status != null ? Product.Status.valueOf(status) : null;
         return ResponseEntity.ok(productService.getProducts(keyword, productStatus, pageable));
     }
 
