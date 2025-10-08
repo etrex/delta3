@@ -21,27 +21,27 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'Dashboard',
-          component: () => import('@/views/Dashboard.vue')
+          component: () => import('@/views/customer/Dashboard.vue')
         },
         {
           path: 'products',
           name: 'Products',
-          component: () => import('@/views/Products.vue')
+          component: () => import('@/views/customer/Products.vue')
         },
         {
           path: 'checkout',
           name: 'Checkout',
-          component: () => import('@/views/Checkout.vue')
+          component: () => import('@/views/customer/Checkout.vue')
         },
         {
           path: 'orders',
           name: 'Orders',
-          component: () => import('@/views/Orders.vue')
+          component: () => import('@/views/customer/Orders.vue')
         },
         {
           path: 'orders/:id',
           name: 'OrderDetail',
-          component: () => import('@/views/OrderDetail.vue')
+          component: () => import('@/views/customer/OrderDetail.vue')
         },
         {
           path: 'admin/orders',
@@ -52,7 +52,7 @@ const router = createRouter({
         {
           path: 'admin/orders/:id',
           name: 'AdminOrderDetail',
-          component: () => import('@/views/OrderDetail.vue'),
+          component: () => import('@/views/admin/OrderDetail.vue'),
           meta: { requiresAdmin: true }
         },
         {
@@ -65,6 +65,12 @@ const router = createRouter({
           path: 'admin/shipping/reports',
           name: 'ShippingReports',
           component: () => import('@/views/admin/ShippingReports.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'admin/products',
+          name: 'ProductManagement',
+          component: () => import('@/views/admin/ProductManagement.vue'),
           meta: { requiresAdmin: true }
         }
       ]

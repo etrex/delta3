@@ -10,6 +10,9 @@
           <router-link v-if="authStore.isCustomer" to="/orders" class="nav-link">
             我的訂單
           </router-link>
+          <router-link v-if="authStore.isAdmin" to="/admin/products" class="nav-link">
+            商品管理
+          </router-link>
           <router-link v-if="authStore.isAdmin" to="/admin/orders" class="nav-link">
             訂單管理
           </router-link>
