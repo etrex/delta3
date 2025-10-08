@@ -5,7 +5,7 @@
   <el-container class="layout-container">
     <el-header class="header">
       <div class="header-content">
-        <h2>電商購物平台 - 管理系統</h2>
+        <h2 class="site-title" @click="goToHome">電商購物平台 - 管理系統</h2>
         <div class="header-actions">
           <router-link to="/admin/products" class="nav-link">
             商品管理
@@ -39,6 +39,10 @@ const authStore = useAuthStore()
 function handleLogout() {
   authStore.logout()
   router.push('/login')
+}
+
+function goToHome() {
+  router.push('/admin/products')
 }
 </script>
 
@@ -78,6 +82,15 @@ function handleLogout() {
 
 .nav-link:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+.site-title {
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.site-title:hover {
+  opacity: 0.8;
 }
 
 .username {

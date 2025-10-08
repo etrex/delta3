@@ -5,7 +5,7 @@
   <el-container class="layout-container">
     <el-header class="header">
       <div class="header-content">
-        <h2>電商購物平台</h2>
+        <h2 class="site-title" @click="goToHome">電商購物平台</h2>
         <div class="header-actions">
           <router-link to="/products" class="nav-link">
             商品列表
@@ -188,6 +188,10 @@ function goToCheckout() {
   cartDrawerVisible.value = false
   router.push('/checkout')
 }
+
+function goToHome() {
+  router.push('/products')
+}
 </script>
 
 <style scoped>
@@ -237,6 +241,15 @@ function goToCheckout() {
 
 .cart-count-text {
   font-size: 14px;
+}
+
+.site-title {
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.site-title:hover {
+  opacity: 0.8;
 }
 
 .username {
