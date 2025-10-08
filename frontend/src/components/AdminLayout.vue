@@ -7,6 +7,9 @@
       <div class="header-content">
         <h2 class="site-title" @click="goToHome">卡米購 - 管理系統</h2>
         <div class="header-actions">
+          <router-link to="/admin/dashboard" class="nav-link">
+            總覽
+          </router-link>
           <router-link to="/admin/products" class="nav-link">
             商品管理
           </router-link>
@@ -42,7 +45,7 @@ function handleLogout() {
 }
 
 function goToHome() {
-  router.push('/admin/products')
+  router.push('/admin/dashboard')
 }
 </script>
 

@@ -78,7 +78,7 @@ const handleLogin = async () => {
         ElMessage.success('Login successful!')
         // Redirect based on user role
         if (authStore.user?.role === 'ADMIN') {
-          router.push('/admin/products')
+          router.push('/admin/dashboard')
         } else {
           router.push('/products')
         }

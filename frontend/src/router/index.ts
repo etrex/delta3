@@ -49,9 +49,15 @@ const router = createRouter({
     {
       path: '/admin',
       component: () => import('@/components/AdminLayout.vue'),
-      redirect: '/admin/products',
+      redirect: '/admin/dashboard',
       meta: { requiresAdmin: true },
       children: [
+        {
+          path: 'dashboard',
+          name: 'AdminDashboard',
+          component: () => import('@/views/admin/Dashboard.vue'),
+          meta: { requiresAdmin: true }
+        },
         {
           path: 'products',
           name: 'ProductManagement',
