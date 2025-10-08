@@ -33,10 +33,10 @@
       </el-table-column>
       <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="showEditDialog(row)">編輯</el-button>
+          <el-button size="small" type="primary" @click="showEditDialog(row)">編輯</el-button>
           <el-button
             size="small"
-            :type="row.status === 'ACTIVE' ? 'warning' : 'success'"
+            type="primary"
             @click="toggleStatus(row)"
           >
             {{ row.status === 'ACTIVE' ? '下架' : '上架' }}
