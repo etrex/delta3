@@ -5,7 +5,7 @@
   <div class="product-management">
     <div class="header">
       <h1>商品管理</h1>
-      <el-button type="primary" @click="showAddDialog">新增商品</el-button>
+      <el-button type="primary" @click="addProduct">新增商品</el-button>
     </div>
 
     <!-- 商品列表 -->
@@ -27,8 +27,8 @@
       </el-table-column>
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="showDetailDialog(row)">查看</el-button>
-          <el-button size="small" type="primary" @click="showEditDialog(row)">編輯</el-button>
+          <el-button size="small" @click="viewProduct(row)">查看</el-button>
+          <el-button size="small" type="primary" @click="editProduct(row)">編輯</el-button>
           <el-button
             size="small"
             type="primary"
@@ -39,146 +39,18 @@
         </template>
       </el-table-column>
     </el-table>
-
-    <!-- 新增/編輯商品對話框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogMode === 'add' ? '新增商品' : '編輯商品'"
-      width="500px"
-    >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <el-form-item label="商品名稱" prop="name">
-          <el-input v-model="form.name" placeholder="請輸入商品名稱" />
-        </el-form-item>
-
-        <el-form-item label="商品描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="3"
-            placeholder="請輸入商品描述"
-          />
-        </el-form-item>
-
-        <el-form-item label="價格" prop="price">
-          <el-input-number
-            v-model="form.price"
-            :min="0"
-            :precision="0"
-            :step="1"
-            placeholder="請輸入價格"
-          />
-        </el-form-item>
-
-        <el-form-item label="庫存" prop="stock">
-          <el-input-number
-            v-model="form.stock"
-            :min="0"
-            placeholder="請輸入庫存"
-          />
-        </el-form-item>
-
-        <el-form-item label="狀態" prop="status">
-          <el-select v-model="form.status" placeholder="請選擇狀態">
-            <el-option label="上架" value="ACTIVE" />
-            <el-option label="下架" value="INACTIVE" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="isSubmitting" @click="handleSubmit">
-          確認
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 查看商品詳細資訊對話框 -->
-    <el-dialog
-      v-model="detailDialogVisible"
-      title="商品詳細資訊"
-      width="600px"
-    >
-      <div v-if="selectedProduct" class="product-detail">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="商品編號">
-            {{ selectedProduct.id }}
-          </el-descriptions-item>
-          <el-descriptions-item label="商品名稱">
-            {{ selectedProduct.name }}
-          </el-descriptions-item>
-          <el-descriptions-item label="商品描述">
-            {{ selectedProduct.description || '-' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="價格">
-            ${{ selectedProduct.price.toFixed(0) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="庫存">
-            {{ selectedProduct.stock }}
-          </el-descriptions-item>
-          <el-descriptions-item label="狀態">
-            <el-tag :type="selectedProduct.status === 'ACTIVE' ? 'success' : 'info'">
-              {{ selectedProduct.status === 'ACTIVE' ? '上架' : '下架' }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="建立時間">
-            {{ formatDate(selectedProduct.createdAt) }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </div>
-
-      <template #footer>
-        <el-button @click="detailDialogVisible = false">關閉</el-button>
-        <el-button type="primary" @click="editFromDetail">編輯</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import productsApi from '@/api/products'
 import type { Product } from '@/types'
 
+const router = useRouter()
 const products = ref<Product[]>([])
-const dialogVisible = ref(false)
-const detailDialogVisible = ref(false)
-const dialogMode = ref<'add' | 'edit'>('add')
-const formRef = ref<FormInstance>()
-const isSubmitting = ref(false)
-const editingId = ref<number | null>(null)
-const selectedProduct = ref<Product | null>(null)
-
-const form = reactive({
-  name: '',
-  description: '',
-  price: 0,
-  stock: 0,
-  status: 'ACTIVE'
-})
-
-const rules = {
-  name: [
-    { required: true, message: '請輸入商品名稱', trigger: 'blur' },
-    { max: 100, message: '商品名稱不能超過100個字元', trigger: 'blur' }
-  ],
-  description: [
-    { max: 255, message: '商品描述不能超過255個字元', trigger: 'blur' }
-  ],
-  price: [
-    { required: true, message: '請輸入價格', trigger: 'blur' },
-    { type: 'number', min: 0.01, message: '價格必須大於0', trigger: 'blur' }
-  ],
-  stock: [
-    { required: true, message: '請輸入庫存', trigger: 'blur' },
-    { type: 'number', min: 0, message: '庫存不能為負數', trigger: 'blur' }
-  ],
-  status: [
-    { required: true, message: '請選擇狀態', trigger: 'change' }
-  ]
-}
 
 onMounted(async () => {
   await loadProducts()
@@ -196,79 +68,16 @@ async function loadProducts() {
   }
 }
 
-function showAddDialog() {
-  dialogMode.value = 'add'
-  editingId.value = null
-  resetForm()
-  dialogVisible.value = true
+function addProduct() {
+  router.push('/admin/products/new')
 }
 
-function showDetailDialog(product: Product) {
-  selectedProduct.value = product
-  detailDialogVisible.value = true
+function viewProduct(product: Product) {
+  router.push(`/admin/products/${product.id}`)
 }
 
-function editFromDetail() {
-  if (selectedProduct.value) {
-    detailDialogVisible.value = false
-    showEditDialog(selectedProduct.value)
-  }
-}
-
-function showEditDialog(product: Product) {
-  dialogMode.value = 'edit'
-  editingId.value = product.id!
-
-  // Fill form with product data
-  form.name = product.name
-  form.description = product.description || ''
-  form.price = product.price
-  form.stock = product.stock
-  form.status = product.status
-
-  dialogVisible.value = true
-}
-
-function resetForm() {
-  form.name = ''
-  form.description = ''
-  form.price = 0
-  form.stock = 0
-  form.status = 'ACTIVE'
-  formRef.value?.clearValidate()
-}
-
-async function handleSubmit() {
-  if (!formRef.value) return
-
-  try {
-    await formRef.value.validate()
-    isSubmitting.value = true
-
-    const productData: Product = {
-      name: form.name,
-      description: form.description,
-      price: form.price,
-      stock: form.stock,
-      status: form.status
-    }
-
-    if (dialogMode.value === 'add') {
-      await productsApi.createProduct(productData)
-      ElMessage.success('商品新增成功')
-    } else {
-      await productsApi.updateProduct(editingId.value!, productData)
-      ElMessage.success('商品更新成功')
-    }
-
-    dialogVisible.value = false
-    await loadProducts()
-  } catch (error: any) {
-    console.error('Failed to save product:', error)
-    ElMessage.error(error.response?.data?.message || '操作失敗')
-  } finally {
-    isSubmitting.value = false
-  }
+function editProduct(product: Product) {
+  router.push(`/admin/products/${product.id}/edit`)
 }
 
 async function toggleStatus(product: Product) {
@@ -301,18 +110,6 @@ async function toggleStatus(product: Product) {
     }
   }
 }
-
-function formatDate(dateString: string): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 </script>
 
 <style scoped>
@@ -330,9 +127,5 @@ function formatDate(dateString: string): string {
 h1 {
   margin: 0;
   color: #333;
-}
-
-.product-detail {
-  padding: 20px 0;
 }
 </style>

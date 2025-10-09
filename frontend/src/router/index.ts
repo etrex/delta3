@@ -65,6 +65,24 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'products/new',
+          name: 'AdminProductNew',
+          component: () => import('@/views/admin/ProductEdit.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'products/:id',
+          name: 'AdminProductDetail',
+          component: () => import('@/views/admin/ProductDetail.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'products/:id/edit',
+          name: 'AdminProductEdit',
+          component: () => import('@/views/admin/ProductEdit.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'orders',
           name: 'AdminOrders',
           component: () => import('@/views/admin/Orders.vue'),
