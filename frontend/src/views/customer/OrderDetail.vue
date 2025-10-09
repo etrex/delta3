@@ -33,149 +33,19 @@
     <!-- 訂單詳情 -->
     <el-row :gutter="20">
       <el-col :span="16">
-        <!-- 商品明細 -->
-        <el-card class="items-card" data-cy="order-details">
-          <template #header>
-            <h3>商品明細</h3>
-          </template>
-          <div class="order-items" data-cy="order-items">
-            <div
-              v-for="item in order.items"
-              :key="item.id"
-              class="order-item"
-              data-cy="order-item"
-            >
-              <div class="item-image" data-cy="product-image">
-                <!-- Placeholder for product image -->
-                <div class="image-placeholder"></div>
-              </div>
-              <div class="item-details">
-                <div class="product-name" data-cy="product-name">{{ item.productName }}</div>
-                <div class="item-meta">
-                  <span class="item-price" data-cy="item-price">${{ item.price?.toFixed(0) }}</span>
-                  <span class="item-quantity" data-cy="item-quantity">x {{ item.quantity }}</span>
-                  <span class="item-subtotal" data-cy="item-subtotal">
-                    ${{ ((item.price || 0) * item.quantity).toFixed(0) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </el-card>
-
-        <!-- 訂單歷程 -->
-        <el-card class="events-card" data-cy="order-events">
-          <template #header>
-            <h3>訂單歷程</h3>
-          </template>
-          <el-timeline v-if="events.length > 0">
-            <el-timeline-item
-              v-for="event in events"
-              :key="event.id"
-              :timestamp="formatDateTime(event.createdAt)"
-              placement="top"
-              data-cy="event-item"
-            >
-              <div class="event-type" data-cy="event-type">{{ getEventTypeLabel(event.eventType) }}</div>
-              <div class="event-message" data-cy="event-message">{{ event.message }}</div>
-              <div v-if="event.modifiedByUsername" class="event-user" data-cy="event-user">
-                操作者: {{ event.modifiedByUsername }}
-              </div>
-            </el-timeline-item>
-          </el-timeline>
-          <div v-else class="no-events">尚無訂單歷程記錄</div>
-        </el-card>
+        <OrderItems :items="order.items" />
+        <OrderEvents :events="events" />
       </el-col>
 
       <el-col :span="8">
-        <!-- 訂單摘要 -->
-        <el-card class="summary-card" data-cy="order-summary">
-          <template #header>
-            <h3>訂單摘要</h3>
-          </template>
-          <div class="summary-row">
-            <span>商品總計</span>
-            <span data-cy="items-total">${{ order.totalAmount?.toFixed(0) }}</span>
-          </div>
-          <div class="summary-row">
-            <span>運費</span>
-            <span data-cy="shipping-fee">$0</span>
-          </div>
-          <div class="summary-row total">
-            <span>訂單總額</span>
-            <span data-cy="total-amount">${{ order.totalAmount?.toFixed(0) }}</span>
-          </div>
-        </el-card>
-
-        <!-- 付款資訊 -->
-        <el-card class="payment-card" data-cy="payment-info">
-          <template #header>
-            <h3>付款資訊</h3>
-          </template>
-
-          <div class="payment-status" data-cy="payment-status">
-            狀態: {{ getPaymentStatus(order.status) }}
-          </div>
-
-          <!-- 已付款顯示付款詳情 -->
-          <div v-if="order.payments && order.payments.length > 0" class="payment-history" data-cy="payment-history">
-            <h4>付款記錄</h4>
-            <div
-              v-for="payment in order.payments"
-              :key="payment.id"
-              class="payment-record"
-              data-cy="payment-record"
-            >
-              <div data-cy="payment-method">付款方式: {{ getPaymentMethodLabel(payment.paymentMethod) }}</div>
-              <div data-cy="payment-amount">金額: ${{ payment.amount?.toFixed(0) }}</div>
-              <div data-cy="payment-date">時間: {{ formatDateTime(payment.paidAt) }}</div>
-              <div v-if="payment.transactionId" data-cy="transaction-id">
-                交易號: {{ payment.transactionId }}
-              </div>
-              <el-tag :type="getPaymentStatusType(payment.status)" data-cy="payment-status">
-                {{ getPaymentStatusLabel(payment.status) }}
-              </el-tag>
-            </div>
-
-            <el-tag v-if="hasSuccessfulPayment" type="success" data-cy="payment-completed-badge">
-              付款已完成
-            </el-tag>
-          </div>
-
-          <!-- 未付款顯示付款按鈕 -->
-          <div v-if="order.status === 'CREATED' && !hasSuccessfulPayment">
-            <el-button
-              type="primary"
-              data-cy="pay-now-btn"
-              @click="showPaymentModal"
-              class="pay-btn"
-            >立即付款</el-button>
-          </div>
-
-          <!-- 付款失敗顯示重試按鈕 -->
-          <div v-if="hasFailedPayment">
-            <el-tag type="danger" data-cy="payment-failed-badge">付款失敗</el-tag>
-            <el-button
-              type="warning"
-              data-cy="retry-payment-btn"
-              @click="showPaymentModal"
-              class="retry-btn"
-            >重試付款</el-button>
-          </div>
-        </el-card>
-
-        <!-- 出貨資訊 -->
-        <el-card class="shipping-card" data-cy="shipping-info">
-          <template #header>
-            <h3>出貨資訊</h3>
-          </template>
-          <div class="shipping-status" data-cy="shipping-status">
-            狀態: {{ getShippingStatus(order.status) }}
-          </div>
-          <div v-if="order.status === 'SHIPPED'" class="tracking-info" data-cy="tracking-info">
-            <div data-cy="shipped-date">出貨日期: {{ formatDateTime(order.updatedAt) }}</div>
-          </div>
-        </el-card>
+        <OrderSummary :total-amount="order.totalAmount" />
+        <PaymentInfo
+          :payments="order.payments"
+          :order-status="order.status"
+          :show-payment-button="true"
+          @pay="showPaymentModal"
+        />
+        <ShippingInfo :order-status="order.status" :updated-at="order.updatedAt" />
       </el-col>
     </el-row>
 
@@ -302,6 +172,11 @@ import { ElMessage, type FormInstance } from 'element-plus'
 import { Lock } from '@element-plus/icons-vue'
 import ordersApi from '@/api/orders'
 import type { Order, Payment, OrderEvent } from '@/types'
+import OrderItems from '@/components/order/OrderItems.vue'
+import OrderEvents from '@/components/order/OrderEvents.vue'
+import OrderSummary from '@/components/order/OrderSummary.vue'
+import PaymentInfo from '@/components/order/PaymentInfo.vue'
+import ShippingInfo from '@/components/order/ShippingInfo.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -334,14 +209,6 @@ const creditCardRules = {
   cardExpiry: [{ required: true, message: '請輸入有效期', trigger: 'blur' }],
   cardCvv: [{ required: true, message: '請輸入安全碼', trigger: 'blur' }]
 }
-
-const hasSuccessfulPayment = computed(() => {
-  return order.value?.payments?.some(p => p.status === 'SUCCESS') || false
-})
-
-const hasFailedPayment = computed(() => {
-  return order.value?.payments?.some(p => p.status === 'FAILED') || false
-})
 
 onMounted(async () => {
   await loadOrder()

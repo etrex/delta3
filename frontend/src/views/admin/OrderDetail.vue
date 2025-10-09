@@ -23,113 +23,14 @@
     <!-- 訂單詳情 -->
     <el-row :gutter="20">
       <el-col :span="16">
-        <!-- 商品明細 -->
-        <el-card class="items-card">
-          <template #header>
-            <h3>商品明細</h3>
-          </template>
-          <div class="order-items">
-            <div v-for="item in order.items" :key="item.id" class="order-item">
-              <div class="item-image">
-                <div class="image-placeholder"></div>
-              </div>
-              <div class="item-details">
-                <div class="product-name">{{ item.productName }}</div>
-                <div class="item-meta">
-                  <span class="item-price">${{ item.price?.toFixed(0) }}</span>
-                  <span class="item-quantity">x {{ item.quantity }}</span>
-                  <span class="item-subtotal">
-                    ${{ ((item.price || 0) * item.quantity).toFixed(0) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </el-card>
-
-        <!-- 訂單歷程 -->
-        <el-card class="events-card" data-cy="order-events">
-          <template #header>
-            <h3>訂單歷程</h3>
-          </template>
-          <el-timeline v-if="events.length > 0">
-            <el-timeline-item
-              v-for="event in events"
-              :key="event.id"
-              :timestamp="formatDateTime(event.createdAt)"
-              placement="top"
-              data-cy="event-item"
-            >
-              <div class="event-type" data-cy="event-type">{{ getEventTypeLabel(event.eventType) }}</div>
-              <div class="event-message" data-cy="event-message">{{ event.message }}</div>
-              <div v-if="event.modifiedByUsername" class="event-user" data-cy="event-user">
-                操作者: {{ event.modifiedByUsername }}
-              </div>
-            </el-timeline-item>
-          </el-timeline>
-          <div v-else class="no-events">尚無訂單歷程記錄</div>
-        </el-card>
+        <OrderItems :items="order.items" />
+        <OrderEvents :events="events" />
       </el-col>
 
       <el-col :span="8">
-        <!-- 訂單摘要 -->
-        <el-card class="summary-card">
-          <template #header>
-            <h3>訂單摘要</h3>
-          </template>
-          <div class="summary-row">
-            <span>商品總計</span>
-            <span>${{ order.totalAmount?.toFixed(0) }}</span>
-          </div>
-          <div class="summary-row">
-            <span>運費</span>
-            <span>$0</span>
-          </div>
-          <div class="summary-row total">
-            <span>訂單總額</span>
-            <span>${{ order.totalAmount?.toFixed(0) }}</span>
-          </div>
-        </el-card>
-
-        <!-- 付款資訊 -->
-        <el-card class="payment-card">
-          <template #header>
-            <h3>付款資訊</h3>
-          </template>
-
-          <div class="payment-status">
-            狀態: {{ getPaymentStatus(order.status) }}
-          </div>
-
-          <!-- 付款記錄 -->
-          <div v-if="order.payments && order.payments.length > 0" class="payment-history">
-            <h4>付款記錄</h4>
-            <div v-for="payment in order.payments" :key="payment.id" class="payment-record">
-              <div>付款方式: {{ getPaymentMethodLabel(payment.paymentMethod) }}</div>
-              <div>金額: ${{ payment.amount?.toFixed(0) }}</div>
-              <div>時間: {{ formatDateTime(payment.paidAt) }}</div>
-              <div v-if="payment.transactionId">
-                交易號: {{ payment.transactionId }}
-              </div>
-              <el-tag :type="getPaymentStatusType(payment.status)">
-                {{ getPaymentStatusLabel(payment.status) }}
-              </el-tag>
-            </div>
-          </div>
-        </el-card>
-
-        <!-- 出貨資訊 -->
-        <el-card class="shipping-card">
-          <template #header>
-            <h3>出貨資訊</h3>
-          </template>
-          <div class="shipping-status">
-            狀態: {{ getShippingStatus(order.status) }}
-          </div>
-          <div v-if="order.status === 'SHIPPED'" class="tracking-info">
-            <div>出貨日期: {{ formatDateTime(order.updatedAt) }}</div>
-          </div>
-        </el-card>
+        <OrderSummary :total-amount="order.totalAmount" />
+        <PaymentInfo :payments="order.payments" :order-status="order.status" />
+        <ShippingInfo :order-status="order.status" :updated-at="order.updatedAt" />
       </el-col>
     </el-row>
   </div>
@@ -141,6 +42,11 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ordersApi from '@/api/orders'
 import type { Order, OrderEvent } from '@/types'
+import OrderItems from '@/components/order/OrderItems.vue'
+import OrderEvents from '@/components/order/OrderEvents.vue'
+import OrderSummary from '@/components/order/OrderSummary.vue'
+import PaymentInfo from '@/components/order/PaymentInfo.vue'
+import ShippingInfo from '@/components/order/ShippingInfo.vue'
 
 const route = useRoute()
 const order = ref<Order | null>(null)
@@ -195,60 +101,6 @@ function getStatusType(status: string): string {
   }
   return types[status] || 'info'
 }
-
-function getShippingStatus(status: string): string {
-  if (status === 'SHIPPED') return '已出貨'
-  if (status === 'APPROVED') return '待出貨'
-  return '待出貨'
-}
-
-function getPaymentStatus(status: string): string {
-  if (status === 'PAID' || status === 'APPROVED' || status === 'SHIPPED') return '已付款'
-  return '待付款'
-}
-
-function getPaymentMethodLabel(method: string): string {
-  const labels: Record<string, string> = {
-    'CREDIT_CARD': '信用卡',
-    'BANK_TRANSFER': '銀行轉帳',
-    'PAYPAL': 'PayPal',
-    'CASH': '貨到付款'
-  }
-  return labels[method] || method
-}
-
-function getPaymentStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    'PENDING': '處理中',
-    'SUCCESS': '成功',
-    'FAILED': '失敗',
-    'REFUNDED': '已退款'
-  }
-  return labels[status] || status
-}
-
-function getPaymentStatusType(status: string): string {
-  const types: Record<string, string> = {
-    'PENDING': 'warning',
-    'SUCCESS': 'success',
-    'FAILED': 'danger',
-    'REFUNDED': 'info'
-  }
-  return types[status] || 'info'
-}
-
-function getEventTypeLabel(eventType: string): string {
-  const labels: Record<string, string> = {
-    'CREATED': '訂單建立',
-    'PAID': '付款完成',
-    'APPROVED': '訂單批准',
-    'SHIPPED': '訂單出貨',
-    'DELIVERED': '訂單送達',
-    'CANCELLED': '訂單取消',
-    'REFUNDED': '訂單退款'
-  }
-  return labels[eventType] || eventType
-}
 </script>
 
 <style scoped>
@@ -293,119 +145,5 @@ h1 {
   font-size: 18px;
   font-weight: bold;
   color: #333;
-}
-
-.items-card,
-.shipping-card,
-.summary-card,
-.payment-card {
-  margin-bottom: 20px;
-}
-
-.order-items {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.order-item {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background-color: #fafafa;
-  border-radius: 4px;
-}
-
-.item-image {
-  width: 80px;
-  height: 80px;
-}
-
-.image-placeholder {
-  width: 100%;
-  height: 100%;
-  background-color: #e4e7ed;
-  border-radius: 4px;
-}
-
-.item-details {
-  flex: 1;
-}
-
-.product-name {
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.item-meta {
-  display: flex;
-  gap: 20px;
-  color: #909399;
-}
-
-.item-subtotal {
-  color: #409EFF;
-  font-weight: bold;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.summary-row.total {
-  font-size: 20px;
-  font-weight: bold;
-  color: #409EFF;
-  border-bottom: none;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 2px solid #409EFF;
-}
-
-.payment-status {
-  margin-bottom: 16px;
-  font-size: 16px;
-}
-
-.payment-history {
-  margin-top: 20px;
-}
-
-.payment-record {
-  padding: 12px;
-  background-color: #fafafa;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-.events-card {
-  margin-bottom: 20px;
-}
-
-.event-type {
-  font-weight: bold;
-  color: #409EFF;
-  margin-bottom: 4px;
-}
-
-.event-message {
-  color: #666;
-  font-size: 14px;
-}
-
-.event-user {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 4px;
-  font-style: italic;
-}
-
-.no-events {
-  text-align: center;
-  color: #999;
-  padding: 20px;
 }
 </style>
