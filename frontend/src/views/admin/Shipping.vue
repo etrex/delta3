@@ -124,7 +124,7 @@
 
           <el-table-column label="訂單資訊" min-width="400">
             <template #default="scope">
-              <div class="order-info" data-cy="order-row" @click="showOrderDetails(scope.row)">
+              <div class="order-info" data-cy="order-row" @click="navigateToOrderDetail(scope.row)">
                 <div class="order-main-info">
                   <span class="order-id" data-cy="order-id">{{ scope.row.orderNo }}</span>
                   <span class="customer-name" data-cy="customer-name">{{ scope.row.customerName || '未知客戶' }}</span>
@@ -304,155 +304,6 @@
       </div>
     </el-dialog>
 
-    <!-- 訂單詳情對話框 -->
-    <el-dialog
-      v-model="orderDetailsDialogVisible"
-      title="訂單詳情"
-      width="800px"
-      data-cy="shipping-details-modal"
-    >
-      <div v-if="currentOrder">
-        <!-- 訂單資訊 -->
-        <div class="details-section" data-cy="order-info">
-          <h3>訂單資訊</h3>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="訂單編號">{{ currentOrder.orderNo }}</el-descriptions-item>
-            <el-descriptions-item label="訂單日期">{{ formatDateTime(currentOrder.createdAt) }}</el-descriptions-item>
-            <el-descriptions-item label="訂單狀態">{{ getShippingStatusLabel(currentOrder.shippingStatus) }}</el-descriptions-item>
-            <el-descriptions-item label="付款狀態">{{ getPaymentStatusLabel(currentOrder.paymentStatus) }}</el-descriptions-item>
-            <el-descriptions-item label="總金額">NT$ {{ currentOrder.totalAmount?.toFixed(0) }}</el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- 客戶資訊 -->
-        <div class="details-section" data-cy="customer-info">
-          <h3>客戶資訊</h3>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="客戶名稱">{{ currentOrder.customerName }}</el-descriptions-item>
-            <el-descriptions-item label="聯絡電話">{{ currentOrder.customerPhone || '未提供' }}</el-descriptions-item>
-            <el-descriptions-item label="電子郵件">{{ currentOrder.customerEmail || '未提供' }}</el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- 配送地址 -->
-        <div class="details-section" data-cy="shipping-address">
-          <h3>配送地址</h3>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="收件人" data-cy="recipient-name">{{ currentOrder.recipientName || currentOrder.customerName }}</el-descriptions-item>
-            <el-descriptions-item label="收件電話" data-cy="recipient-phone">{{ currentOrder.recipientPhone || currentOrder.customerPhone }}</el-descriptions-item>
-            <el-descriptions-item label="配送地址" :span="2" data-cy="delivery-address">{{ currentOrder.shippingAddress || '未提供' }}</el-descriptions-item>
-            <el-descriptions-item label="郵遞區號" data-cy="postal-code">{{ currentOrder.postalCode || '未提供' }}</el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- 訂單商品 -->
-        <div class="details-section" data-cy="order-items">
-          <h3>訂單商品</h3>
-          <el-table :data="currentOrder.items || []" border>
-            <el-table-column prop="productName" label="商品名稱" />
-            <el-table-column prop="quantity" label="數量" width="100" />
-            <el-table-column prop="price" label="單價" width="120">
-              <template #default="scope">
-                NT$ {{ scope.row.price?.toFixed(0) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="小計" width="120">
-              <template #default="scope">
-                NT$ {{ (scope.row.quantity * scope.row.price)?.toFixed(0) }}
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-
-        <!-- 出貨歷史 -->
-        <div class="details-section" data-cy="shipping-history">
-          <h3>出貨歷史</h3>
-          <div v-if="currentOrder.shippingHistory && currentOrder.shippingHistory.length > 0">
-            <div
-              v-for="(event, index) in currentOrder.shippingHistory"
-              :key="index"
-              class="shipping-event"
-              data-cy="shipping-event"
-            >
-              <div class="event-timeline">
-                <div class="event-dot"></div>
-                <div v-if="index < currentOrder.shippingHistory.length - 1" class="event-line"></div>
-              </div>
-              <div class="event-content">
-                <div class="event-time" data-cy="event-time">{{ formatDateTime(event.timestamp) }}</div>
-                <div class="event-status" data-cy="event-status">{{ event.status }}</div>
-                <div class="event-description" data-cy="event-description">{{ event.description }}</div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="no-history">
-            暫無出貨歷史記錄
-          </div>
-        </div>
-
-        <!-- 配送資訊編輯 -->
-        <div class="details-section">
-          <el-button
-            type="primary"
-            size="small"
-            data-cy="edit-shipping-info-btn"
-            @click="showShippingEditForm = !showShippingEditForm"
-          >
-            {{ showShippingEditForm ? '取消編輯' : '編輯配送資訊' }}
-          </el-button>
-
-          <div v-if="showShippingEditForm" class="shipping-edit-form" data-cy="shipping-edit-form">
-            <el-form :model="editShippingForm" label-width="120px">
-              <el-form-item label="追蹤號碼">
-                <el-input v-model="editShippingForm.trackingNumber" data-cy="tracking-number-input" />
-              </el-form-item>
-              <el-form-item label="物流商">
-                <el-select v-model="editShippingForm.carrier" data-cy="carrier-select" style="width: 100%">
-                  <el-option label="順豐速運" value="順豐速運" />
-                  <el-option label="宅急便" value="宅急便" />
-                  <el-option label="黑貓宅急便" value="黑貓宅急便" />
-                  <el-option label="郵局" value="郵局" />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" data-cy="save-shipping-info-btn" @click="saveShippingInfo">儲存</el-button>
-              </el-form-item>
-            </el-form>
-          </div>
-        </div>
-
-        <!-- 配送備註 -->
-        <div class="details-section">
-          <el-button
-            type="primary"
-            size="small"
-            data-cy="add-shipping-note-btn"
-            @click="showAddNoteForm = !showAddNoteForm"
-          >
-            {{ showAddNoteForm ? '取消' : '新增配送備註' }}
-          </el-button>
-
-          <div v-if="showAddNoteForm" class="add-note-form">
-            <el-input
-              v-model="newShippingNote"
-              type="textarea"
-              :rows="3"
-              data-cy="shipping-note-input"
-              placeholder="請輸入配送備註"
-            />
-            <el-button type="primary" data-cy="save-note-btn" @click="saveShippingNote" style="margin-top: 10px">儲存備註</el-button>
-          </div>
-
-          <div v-if="currentOrder.shippingNotes && currentOrder.shippingNotes.length > 0" class="shipping-notes-list" data-cy="shipping-notes">
-            <h4>配送備註</h4>
-            <div v-for="(note, index) in currentOrder.shippingNotes" :key="index" class="note-item">
-              <div class="note-time">{{ formatDateTime(note.timestamp) }}</div>
-              <div class="note-content">{{ note.content }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
 
     <!-- 批量標記為待出貨確認對話框 -->
     <el-dialog
@@ -533,7 +384,6 @@ const dateTo = ref('')
 
 // 對話框狀態
 const shippingActionDialogVisible = ref(false)
-const orderDetailsDialogVisible = ref(false)
 const bulkApproveDialogVisible = ref(false)
 const printOptionsDialogVisible = ref(false)
 
@@ -553,14 +403,6 @@ const formErrors = ref({
   trackingNumber: '',
   carrier: ''
 })
-
-const editShippingForm = ref({
-  trackingNumber: '',
-  carrier: ''
-})
-const showShippingEditForm = ref(false)
-const showAddNoteForm = ref(false)
-const newShippingNote = ref('')
 
 const printLabelFormat = ref('A4')
 
@@ -686,11 +528,8 @@ function showShippingActionModal(order: any) {
   shippingActionDialogVisible.value = true
 }
 
-function showOrderDetails(order: any) {
-  currentOrder.value = order
-  showShippingEditForm.value = false
-  showAddNoteForm.value = false
-  orderDetailsDialogVisible.value = true
+function navigateToOrderDetail(order: any) {
+  router.push(`/admin/orders/${order.id}`)
 }
 
 function selectAction(action: string) {
@@ -877,42 +716,6 @@ async function confirmPrintLabels() {
   } catch (error) {
     console.error('Failed to print labels:', error)
     ElMessage.error('列印失敗')
-  }
-}
-
-async function saveShippingInfo() {
-  try {
-    // 模擬儲存出貨資訊
-    if (currentOrder.value) {
-      currentOrder.value.trackingNumber = editShippingForm.value.trackingNumber
-      currentOrder.value.carrier = editShippingForm.value.carrier
-    }
-    showSuccessMessage('出貨資訊已更新')
-    showShippingEditForm.value = false
-  } catch (error) {
-    console.error('Failed to save shipping info:', error)
-    ElMessage.error('儲存失敗')
-  }
-}
-
-async function saveShippingNote() {
-  try {
-    // 模擬儲存備註
-    if (currentOrder.value && newShippingNote.value) {
-      if (!currentOrder.value.shippingNotes) {
-        currentOrder.value.shippingNotes = []
-      }
-      currentOrder.value.shippingNotes.push({
-        timestamp: new Date().toISOString(),
-        content: newShippingNote.value
-      })
-      newShippingNote.value = ''
-      showAddNoteForm.value = false
-      showSuccessMessage('備註已新增')
-    }
-  } catch (error) {
-    console.error('Failed to save note:', error)
-    ElMessage.error('儲存失敗')
   }
 }
 
@@ -1169,100 +972,6 @@ h1 {
   font-size: 16px;
   border-bottom: 2px solid #409eff;
   padding-bottom: 8px;
-}
-
-.shipping-event {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.event-timeline {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 20px;
-}
-
-.event-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #409eff;
-  border: 2px solid white;
-  box-shadow: 0 0 0 2px #409eff;
-}
-
-.event-line {
-  width: 2px;
-  flex: 1;
-  background-color: #dcdfe6;
-  min-height: 30px;
-}
-
-.event-content {
-  flex: 1;
-}
-
-.event-time {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 5px;
-}
-
-.event-status {
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 5px;
-}
-
-.event-description {
-  color: #666;
-  font-size: 14px;
-}
-
-.no-history {
-  text-align: center;
-  padding: 30px;
-  color: #999;
-}
-
-.shipping-edit-form {
-  margin-top: 20px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-}
-
-.add-note-form {
-  margin-top: 20px;
-}
-
-.shipping-notes-list {
-  margin-top: 20px;
-}
-
-.shipping-notes-list h4 {
-  margin-bottom: 10px;
-  color: #666;
-}
-
-.note-item {
-  padding: 12px;
-  background-color: #f9f9f9;
-  border-left: 3px solid #409eff;
-  margin-bottom: 10px;
-  border-radius: 4px;
-}
-
-.note-time {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 5px;
-}
-
-.note-content {
-  color: #333;
 }
 
 .success-message {

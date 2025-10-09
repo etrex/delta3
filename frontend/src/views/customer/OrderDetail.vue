@@ -63,19 +63,6 @@
           </div>
         </el-card>
 
-        <!-- 出貨資訊 -->
-        <el-card class="shipping-card" data-cy="shipping-info">
-          <template #header>
-            <h3>出貨資訊</h3>
-          </template>
-          <div class="shipping-status" data-cy="shipping-status">
-            狀態: {{ getShippingStatus(order.status) }}
-          </div>
-          <div v-if="order.status === 'SHIPPED'" class="tracking-info" data-cy="tracking-info">
-            <div data-cy="shipped-date">出貨日期: {{ formatDateTime(order.updatedAt) }}</div>
-          </div>
-        </el-card>
-
         <!-- 訂單歷程 -->
         <el-card class="events-card" data-cy="order-events">
           <template #header>
@@ -174,6 +161,19 @@
               @click="showPaymentModal"
               class="retry-btn"
             >重試付款</el-button>
+          </div>
+        </el-card>
+
+        <!-- 出貨資訊 -->
+        <el-card class="shipping-card" data-cy="shipping-info">
+          <template #header>
+            <h3>出貨資訊</h3>
+          </template>
+          <div class="shipping-status" data-cy="shipping-status">
+            狀態: {{ getShippingStatus(order.status) }}
+          </div>
+          <div v-if="order.status === 'SHIPPED'" class="tracking-info" data-cy="tracking-info">
+            <div data-cy="shipped-date">出貨日期: {{ formatDateTime(order.updatedAt) }}</div>
           </div>
         </el-card>
       </el-col>
