@@ -6,9 +6,9 @@
 
 - **前端 - Customer 端：** 9/9 完成 (100%) ✅
 - **前端 - Admin 端：** 4/7 完成 (57%)
-- **後端：** 17/25 完成 (68%)
+- **後端：** 22/25 完成 (88%)
 - **AI：** 0/17 完成 (0%)
-- **總計：** 30/58 完成 (52%)
+- **總計：** 35/58 完成 (60%)
 
 ---
 
@@ -56,14 +56,14 @@
 
 ---
 
-## 🔧 後端任務 (17/25 完成)
+## 🔧 後端任務 (22/25 完成)
 
-### 資料表設計 (5/6)
+### 資料表設計 (6/6)
 - [x] Users (Customer/Admin)
 - [x] Orders
 - [x] OrderItems
 - [x] Products
-- [ ] OrderEvents (事件溯源) - *待實作*
+- [x] OrderEvents (事件溯源)
 - [x] Payments
 
 ### 基礎設施 (3/3)
@@ -71,27 +71,27 @@
 - [x] Spring JPA + DTO/Service/Repository/Controller 分層架構
 - [x] Swagger API (OpenAPI 3.0)
 
-### API 實作 (9/12)
+### API 實作 (11/12)
 - [x] `GET /api/product` - 商品列表
 - [x] `GET /api/orders` - 訂單列表(分頁、篩選、排序)
 - [x] `POST /api/orders` - 建立訂單(驗證庫存、計算金額)
 - [x] `GET /api/orders/{orderNo}` - 訂單詳情
 - [x] `POST /api/orders/{orderNo}/pay` - 發起付款
 - [ ] `POST /api/payments/webhook` - 付款回調 *(Optional)*
-- [ ] `POST /api/orders/{orderNo}/cancel` - 取消訂單(釋放庫存、退款)
+- [x] `POST /api/orders/{orderNo}/cancel` - 取消訂單(釋放庫存、退款)
 - [x] `POST /api/orders/{orderNo}/ship` - 標記出貨(ADMIN)
-- [ ] `POST /api/product` - 新增商品(ADMIN)
-- [ ] `PUT /api/product` - 更新/重新上架商品(ADMIN)
-- [ ] `DELETE /api/product` - 下架商品(ADMIN)
+- [x] `POST /api/product` - 新增商品(ADMIN)
+- [x] `PUT /api/product/{id}` - 更新/重新上架商品(ADMIN)
+- [x] `DELETE /api/product/{id}` - 下架商品(ADMIN)
 
 ### 安全性與效能 (2/3)
 - [x] Spring Security + JWT + 角色權限(ADMIN/Customer)
 - [x] `@Valid` + Bean Validation
 - [ ] `@Cacheable` 商品查詢快取
 
-### 測試 (0/2)
-- [ ] 整合測試(SpringBootTest + MockMvc)
-- [ ] 單元測試(Service層 + Mockito)
+### 測試 (2/2)
+- [x] 整合測試(SpringBootTest + MockMvc) - Acceptance Tests
+- [x] 單元測試(Service層 + Mockito) - Service & Controller Tests
 
 ---
 
@@ -131,9 +131,12 @@
 
 ## 🐛 已知問題
 
-### 中優先級
-- [ ] 購物車數量驗證 - 需要從商品 API 取得庫存資訊（前端驗證）
-- [ ] 結帳頁面庫存驗證 - 已實作前端驗證 + 後端最終驗證
+### 已解決
+- [x] ~~購物車數量驗證~~ - 已實作前端驗證 (Products.vue) ✅
+- [x] ~~結帳頁面庫存驗證~~ - 已實作前端驗證 (Checkout.vue) + 後端最終驗證 (OrderService) ✅
+
+### 當前問題
+無
 
 ---
 
@@ -167,17 +170,19 @@ delta3/
 ## 🎯 下一步行動
 
 ### 立即處理
-2. 實作商品管理 API (POST/PUT/DELETE)
-3. 完成商品上下架功能
+1. ~~實作商品管理 API (POST/PUT/DELETE)~~ ✅
+2. ~~完成商品上下架功能~~ ✅
+3. ~~實作取消訂單功能~~ ✅
+4. ~~撰寫整合測試與單元測試~~ ✅
 
 ### 短期目標
-4. 實作取消訂單與退款功能
-5. 加入 OrderEvents 事件溯源
+5. ~~加入 OrderEvents 事件溯源~~ ✅
 6. 實作商品查詢快取
+7. 實作付款回調 Webhook (Optional)
 
 ### 中期目標
-7. 撰寫整合測試與單元測試
 8. 開始 AI Chatbot 整合
+9. 完善前端 Admin 端功能
 
 ---
 
