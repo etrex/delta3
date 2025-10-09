@@ -115,12 +115,13 @@ const sendMessage = async () => {
 
   try {
     const response = await chatApi.sendMessage(userMessage)
+    console.log('Chat response:', response)
 
     // Add bot response
     messages.value.push({
-      content: response.message,
+      content: response.response || response.message || '無回應',
       type: 'bot',
-      timestamp: response.timestamp
+      timestamp: Date.now()
     })
   } catch (error) {
     console.error('Chat error:', error)

@@ -5,7 +5,7 @@ import axios from './axios'
 
 export default {
   sendMessage(message: string) {
-    return axios.post('/chat/message', { message })
+    return axios.post('/chat', { message })
   },
 
   chatWithAssistant(message: string) {
