@@ -52,7 +52,6 @@ public class TestDataController {
             product.setDescription(req.getDescription() != null ? req.getDescription() : "測試商品描述");
             product.setPrice(req.getPrice());
             product.setStock(req.getStock());
-            product.setStockThreshold(req.getStockThreshold() != null ? req.getStockThreshold() : 10);
             product.setStatus(Product.Status.valueOf(req.getStatus() != null ? req.getStatus() : "ACTIVE"));
             productRepository.save(product);
         }
@@ -87,7 +86,6 @@ public class TestDataController {
         private String description;
         private BigDecimal price;
         private Integer stock;
-        private Integer stockThreshold;
         private String status;
     }
 }

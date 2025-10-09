@@ -21,7 +21,6 @@ class ProductDTOTest {
         dto.setDescription("Test Description");
         dto.setPrice(new BigDecimal("99.99"));
         dto.setStock(100);
-        dto.setStockThreshold(10);
         dto.setStatus("ACTIVE");
         LocalDateTime now = LocalDateTime.now();
         dto.setCreatedAt(now);
@@ -31,7 +30,6 @@ class ProductDTOTest {
         assertEquals("Test Description", dto.getDescription());
         assertEquals(new BigDecimal("99.99"), dto.getPrice());
         assertEquals(100, dto.getStock());
-        assertEquals(10, dto.getStockThreshold());
         assertEquals("ACTIVE", dto.getStatus());
         assertEquals(now, dto.getCreatedAt());
     }

@@ -11,6 +11,8 @@ import com.etrex.oms.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,7 +72,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        createOrderEvent(savedOrder, "CREATED", "Order created successfully");
+        createOrderEvent(savedOrder, "CREATED", "Order created successfully", customer);
 
         return convertToDTO(savedOrder);
     }
@@ -128,7 +130,7 @@ public class OrderService {
         order.setStatus(Order.Status.PAID);
         orderRepository.save(order);
 
-        createOrderEvent(order, "PAID", "Payment completed with method: " + paymentDTO.getPaymentMethod());
+        createOrderEvent(order, "PAID", "Payment completed with method: " + paymentDTO.getPaymentMethod(), order.getCustomer());
 
         return convertToPaymentDTO(savedPayment);
     }
@@ -149,7 +151,7 @@ public class OrderService {
         order.setStatus(Order.Status.PAID);
         orderRepository.save(order);
 
-        createOrderEvent(order, "PAID", "Payment completed successfully");
+        createOrderEvent(order, "PAID", "Payment completed successfully", order.getCustomer());
 
         return convertToPaymentDTO(savedPayment);
     }
@@ -170,19 +172,20 @@ public class OrderService {
         }
 
         // Handle refund if paid
+        User currentUser = getCurrentUser() != null ? getCurrentUser() : order.getCustomer();
         if (order.getStatus() == Order.Status.PAID) {
             List<Payment> payments = paymentRepository.findByOrderAndStatus(order, Payment.Status.SUCCESS);
             for (Payment payment : payments) {
                 payment.setStatus(Payment.Status.REFUNDED);
                 paymentRepository.save(payment);
             }
-            createOrderEvent(order, "REFUNDED", "Order cancelled and payment refunded");
+            createOrderEvent(order, "REFUNDED", "Order cancelled and payment refunded", currentUser);
         }
 
         order.setStatus(Order.Status.CANCELLED);
         Order savedOrder = orderRepository.save(order);
 
-        createOrderEvent(savedOrder, "CANCELLED", "Order cancelled");
+        createOrderEvent(savedOrder, "CANCELLED", "Order cancelled", currentUser);
 
         return convertToDTO(savedOrder);
     }
@@ -198,17 +201,27 @@ public class OrderService {
         order.setStatus(Order.Status.SHIPPED);
         Order savedOrder = orderRepository.save(order);
 
-        createOrderEvent(savedOrder, "SHIPPED", "Order has been shipped");
+        User currentUser = getCurrentUser();
+        createOrderEvent(savedOrder, "SHIPPED", "Order has been shipped", currentUser);
 
         return convertToDTO(savedOrder);
     }
 
-    private void createOrderEvent(Order order, String eventType, String message) {
+    private void createOrderEvent(Order order, String eventType, String message, User modifiedBy) {
         OrderEvent event = new OrderEvent();
         event.setOrder(order);
         event.setEventType(eventType);
         event.setMessage(message);
+        event.setModifiedBy(modifiedBy);
         orderEventRepository.save(event);
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof User) {
+            return (User) authentication.getPrincipal();
+        }
+        return null;
     }
 
     public OrderDTO getOrderByOrderNo(String orderNo) {
@@ -243,7 +256,8 @@ public class OrderService {
         shippingRepository.save(shipping);
 
         Order savedOrder = orderRepository.save(order);
-        createOrderEvent(savedOrder, "APPROVED", "Order approved for shipping");
+        User currentUser = getCurrentUser();
+        createOrderEvent(savedOrder, "APPROVED", "Order approved for shipping", currentUser);
 
         return convertToDTO(savedOrder);
     }
@@ -275,7 +289,8 @@ public class OrderService {
         shippingRepository.save(shipping);
 
         Order savedOrder = orderRepository.save(order);
-        createOrderEvent(savedOrder, "SHIPPED", "Order shipped with tracking: " + trackingNumber);
+        User currentUser = getCurrentUser();
+        createOrderEvent(savedOrder, "SHIPPED", "Order shipped with tracking: " + trackingNumber, currentUser);
 
         return convertToDTO(savedOrder);
     }
@@ -300,7 +315,8 @@ public class OrderService {
         }
         shippingRepository.save(shipping);
 
-        createOrderEvent(order, "DELIVERED", "Order delivered successfully");
+        User currentUser = getCurrentUser();
+        createOrderEvent(order, "DELIVERED", "Order delivered successfully", currentUser);
 
         return convertToDTO(order);
     }
@@ -519,11 +535,7 @@ public class OrderService {
         cart.setStatus(Order.Status.CREATED);
 
         // Create order event
-        OrderEvent event = new OrderEvent();
-        event.setOrder(cart);
-        event.setEventType("CREATED");
-        event.setMessage("Order created from cart");
-        orderEventRepository.save(event);
+        createOrderEvent(cart, "CREATED", "Order created from cart", user);
 
         return convertToDTO(orderRepository.save(cart));
     }
@@ -533,5 +545,29 @@ public class OrderService {
                 .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         cart.setTotalAmount(total);
+    }
+
+    public List<OrderEventDTO> getOrderEvents(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        List<OrderEvent> events = orderEventRepository.findByOrderOrderByCreatedAtDesc(order);
+        return events.stream()
+                .map(this::convertToEventDTO)
+                .collect(Collectors.toList());
+    }
+
+    private OrderEventDTO convertToEventDTO(OrderEvent event) {
+        OrderEventDTO dto = new OrderEventDTO();
+        dto.setId(event.getId());
+        dto.setOrderId(event.getOrder().getId());
+        dto.setEventType(event.getEventType());
+        dto.setMessage(event.getMessage());
+        if (event.getModifiedBy() != null) {
+            dto.setModifiedBy(event.getModifiedBy().getId());
+            dto.setModifiedByUsername(event.getModifiedBy().getUsername());
+        }
+        dto.setCreatedAt(event.getCreatedAt());
+        return dto;
     }
 }

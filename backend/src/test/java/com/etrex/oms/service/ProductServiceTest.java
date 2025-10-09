@@ -48,7 +48,6 @@ class ProductServiceTest {
         testProduct.setDescription("Test Description");
         testProduct.setPrice(new BigDecimal("99.99"));
         testProduct.setStock(100);
-        testProduct.setStockThreshold(10);
         testProduct.setStatus(Product.Status.ACTIVE);
         testProduct.setCreatedAt(LocalDateTime.now());
 
@@ -58,7 +57,6 @@ class ProductServiceTest {
         testProductDTO.setDescription("Test Description");
         testProductDTO.setPrice(new BigDecimal("99.99"));
         testProductDTO.setStock(100);
-        testProductDTO.setStockThreshold(10);
         testProductDTO.setStatus("ACTIVE");
     }
 
@@ -149,7 +147,6 @@ class ProductServiceTest {
         updateDTO.setDescription("Updated Description");
         updateDTO.setPrice(new BigDecimal("199.99"));
         updateDTO.setStock(200);
-        updateDTO.setStockThreshold(20);
         updateDTO.setStatus("ACTIVE");
 
         Product updatedProduct = new Product();
@@ -158,7 +155,6 @@ class ProductServiceTest {
         updatedProduct.setDescription("Updated Description");
         updatedProduct.setPrice(new BigDecimal("199.99"));
         updatedProduct.setStock(200);
-        updatedProduct.setStockThreshold(20);
         updatedProduct.setStatus(Product.Status.ACTIVE);
         updatedProduct.setCreatedAt(LocalDateTime.now());
 
@@ -176,13 +172,12 @@ class ProductServiceTest {
     }
 
     @Test
-    void updateProduct_WithoutStockThreshold() {
+    void updateProduct_Success_Alternative() {
         ProductDTO updateDTO = new ProductDTO();
         updateDTO.setName("Updated Product");
         updateDTO.setDescription("Updated Description");
         updateDTO.setPrice(new BigDecimal("199.99"));
         updateDTO.setStock(200);
-        updateDTO.setStockThreshold(null);
         updateDTO.setStatus("ACTIVE");
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));

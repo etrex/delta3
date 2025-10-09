@@ -4,7 +4,6 @@
 package com.etrex.oms.entity;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.GrantedAuthority;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,7 +21,6 @@ class ProductTest {
         product.setDescription("Test Description");
         product.setPrice(new BigDecimal("99.99"));
         product.setStock(100);
-        product.setStockThreshold(10);
         product.setStatus(Product.Status.ACTIVE);
         LocalDateTime now = LocalDateTime.now();
         product.setCreatedAt(now);
@@ -32,7 +30,6 @@ class ProductTest {
         assertEquals("Test Description", product.getDescription());
         assertEquals(new BigDecimal("99.99"), product.getPrice());
         assertEquals(100, product.getStock());
-        assertEquals(10, product.getStockThreshold());
         assertEquals(Product.Status.ACTIVE, product.getStatus());
         assertEquals(now, product.getCreatedAt());
     }

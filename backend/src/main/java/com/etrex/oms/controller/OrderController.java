@@ -50,6 +50,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrderByOrderNo(orderNo));
     }
 
+    @GetMapping("/{id}/events")
+    @Operation(summary = "Get order events", description = "Get event history for an order")
+    public ResponseEntity<java.util.List<OrderEventDTO>> getOrderEvents(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderEvents(id));
+    }
+
     @PostMapping
     @Operation(summary = "Create order", description = "Create new order")
     public ResponseEntity<OrderDTO> createOrder(@Valid @RequestBody CreateOrderRequest request) {

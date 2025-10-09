@@ -61,3 +61,13 @@ export interface CreateOrderRequest {
   customerId: number
   items: OrderItem[]
 }
+
+export interface OrderEvent {
+  id: number
+  orderId: number
+  eventType: string
+  message: string
+  modifiedBy?: number
+  modifiedByUsername?: string
+  createdAt: string
+}

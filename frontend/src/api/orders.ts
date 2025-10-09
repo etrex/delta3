@@ -31,5 +31,9 @@ export default {
 
   shipOrder(id: number) {
     return axios.post(`/orders/${id}/ship`)
+  },
+
+  getOrderEvents(id: number) {
+    return axios.get(`/orders/${id}/events`)
   }
 }

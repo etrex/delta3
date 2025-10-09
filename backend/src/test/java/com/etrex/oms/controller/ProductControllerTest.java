@@ -51,7 +51,6 @@ class ProductControllerTest {
         testProduct.setDescription("Test Description");
         testProduct.setPrice(new BigDecimal("99.99"));
         testProduct.setStock(100);
-        testProduct.setStockThreshold(10);
         testProduct.setStatus("ACTIVE");
     }
 
