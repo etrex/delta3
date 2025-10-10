@@ -4,11 +4,13 @@
 import axios from './axios'
 
 export default {
+  // Customer chat (default)
   sendMessage(message: string) {
     return axios.post('/chat', { message })
   },
 
-  chatWithAssistant(message: string) {
-    return axios.post('/chat/assistant', { message })
+  // Admin chat
+  sendAdminMessage(message: string) {
+    return axios.post('/chat/admin', { message })
   }
 }

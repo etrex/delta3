@@ -74,6 +74,7 @@
 import { ref, nextTick, onMounted } from 'vue'
 import { ChatRound, Close, Loading } from '@element-plus/icons-vue'
 import chatApi from '@/api/chat'
+import { useAuthStore } from '@/stores/auth'
 
 interface Message {
   content: string
@@ -81,6 +82,7 @@ interface Message {
   timestamp: number
 }
 
+const authStore = useAuthStore()
 const isOpen = ref(false)
 const currentMessage = ref('')
 const messages = ref<Message[]>([])
@@ -114,7 +116,11 @@ const sendMessage = async () => {
   isLoading.value = true
 
   try {
-    const response = await chatApi.sendMessage(userMessage)
+    // Use different API based on user role
+    const response = authStore.user?.role === 'ADMIN'
+      ? await chatApi.sendAdminMessage(userMessage)
+      : await chatApi.sendMessage(userMessage)
+
     console.log('Chat response:', response)
 
     // Add bot response

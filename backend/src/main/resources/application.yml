@@ -55,7 +55,7 @@ jwt:
 langchain4j:
   ollama:
     base-url: http://localhost:11434
-    model-name: qwen2.5:7b
+    model-name: qwen2.5:14b
     timeout: 60s
 
 cors:
