@@ -48,7 +48,7 @@ fi
 # Start backend
 echo "🖥️  Starting backend server..."
 cd backend
-mvn spring-boot:run &
+mvn spring-boot:run > backend.log 2>&1 &
 BACKEND_PID=$!
 
 # Wait for backend to start

@@ -11,6 +11,9 @@ import lombok.Data;
 @AllArgsConstructor
 @Schema(description = "Authentication response")
 public class AuthResponse {
+    @Schema(description = "User ID", example = "1")
+    private Long id;
+
     @Schema(description = "JWT access token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     private String token;
 

@@ -12,5 +12,10 @@ export default {
   // Admin chat
   sendAdminMessage(message: string) {
     return axios.post('/chat/admin', { message })
+  },
+
+  // Get chat history
+  getHistory(sessionId: string) {
+    return axios.get('/chat/history', { params: { sessionId } })
   }
 }

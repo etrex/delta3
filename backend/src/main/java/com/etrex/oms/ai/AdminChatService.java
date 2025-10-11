@@ -47,7 +47,12 @@ public class AdminChatService {
                     .tools(orderTools)
                     .systemMessageProvider(chatMemoryId ->
                         "你是一個專業的訂單管理系統智能客服助手。請用繁體中文回應。" +
-                        "使用者是管理員，可以協助處理所有商品和訂單管理相關問題，包括出貨、庫存管理等進階功能。")
+                        "使用者是管理員，可以協助處理所有商品和訂單管理相關問題，包括出貨、庫存管理等進階功能。\n\n" +
+                        "用戶的操作會以特殊格式呈現：\n" +
+                        "- (開啟頁面 /path) 表示用戶瀏覽了某個頁面\n" +
+                        "- (點擊按鈕 buttonId) 表示用戶點擊了按鈕\n" +
+                        "- (提交表單 formData) 表示用戶提交了表單\n" +
+                        "請根據這些操作記錄來理解用戶的意圖和上下文。")
                     .build();
         }
         return assistant;

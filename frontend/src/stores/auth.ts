@@ -19,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response: AuthResponse = await authApi.login(username, password)
       token.value = response.token
       user.value = {
+        id: response.id,
         username: response.username,
         role: response.role,
         email: response.email

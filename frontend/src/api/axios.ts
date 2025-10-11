@@ -4,6 +4,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -22,6 +23,18 @@ instance.interceptors.request.use(
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
+
+    // Add chat session ID for tracking
+    try {
+      const chatStore = useChatStore()
+      if (chatStore && chatStore.sessionId) {
+        config.headers['X-Chat-Session-Id'] = chatStore.sessionId
+      }
+    } catch (e) {
+      // Store might not be initialized yet, skip
+      console.debug('Chat store not initialized yet')
+    }
+
     return config
   },
   (error) => {

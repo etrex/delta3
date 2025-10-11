@@ -3,13 +3,15 @@
  */
 package com.etrex.oms.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class ChatRequest {
-    @NotBlank(message = "Message is required")
     private String message;
 
     private String sessionId;
+
+    // For action recording
+    private String actionType;    // navigate, click, submit, etc.
+    private String actionTarget;  // path, button id, etc.
 }

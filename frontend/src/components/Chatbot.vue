@@ -33,11 +33,17 @@
           :key="index"
           :class="['message', message.type]"
         >
-          <div class="message-content">
-            {{ message.content }}
+          <div v-if="message.type === 'action'" class="action-message">
+            <el-icon><Operation /></el-icon>
+            <span>{{ message.content }}</span>
           </div>
-          <div class="message-time">
-            {{ formatTime(message.timestamp) }}
+          <div v-else>
+            <div class="message-content">
+              {{ message.content }}
+            </div>
+            <div class="message-time">
+              {{ formatTime(message.timestamp) }}
+            </div>
           </div>
         </div>
 
@@ -71,33 +77,82 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
-import { ChatRound, Close, Loading } from '@element-plus/icons-vue'
+import { ref, nextTick, onMounted, computed } from 'vue'
+import { ChatRound, Close, Loading, Operation } from '@element-plus/icons-vue'
 import chatApi from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
+import { useChatTracking } from '@/composables/useChatTracking'
 
 interface Message {
   content: string
-  type: 'user' | 'bot'
+  type: 'user' | 'bot' | 'action'
   timestamp: number
 }
 
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 const isOpen = ref(false)
 const currentMessage = ref('')
 const messages = ref<Message[]>([])
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 
-const toggleChat = () => {
+// Use session ID from chat store (user ID)
+const sessionId = computed(() => String(authStore.user?.id || 'guest'))
+
+// Enable chat tracking (backend auto-tracks all operations)
+useChatTracking()
+
+const toggleChat = async () => {
   isOpen.value = !isOpen.value
-  if (isOpen.value && messages.value.length === 0) {
-    // Welcome message
-    messages.value.push({
-      content: '您好！我是智能客服助手，可以幫您查詢商品、訂單狀態等。請問有什麼需要協助的嗎？',
-      type: 'bot',
-      timestamp: Date.now()
-    })
+  if (isOpen.value) {
+    // Always reload history when opening chat
+    messages.value = []
+    await loadChatHistory()
+
+    // If no history, show welcome message
+    if (messages.value.length === 0) {
+      messages.value.push({
+        content: '您好！我是智能客服助手，可以幫您查詢商品、訂單狀態等。請問有什麼需要協助的嗎？',
+        type: 'bot',
+        timestamp: Date.now()
+      })
+    }
+  }
+}
+
+const loadChatHistory = async () => {
+  try {
+    const history = await chatApi.getHistory(sessionId.value)
+
+    // Convert backend history to messages
+    for (const item of history) {
+      if (item.messageType === 'ACTION') {
+        messages.value.push({
+          content: item.content.replace(/^\(|\)$/g, ''), // Remove parentheses
+          type: 'action',
+          timestamp: new Date(item.createdAt).getTime()
+        })
+      } else if (item.role === 'USER') {
+        messages.value.push({
+          content: item.content,
+          type: 'user',
+          timestamp: new Date(item.createdAt).getTime()
+        })
+      } else if (item.role === 'ASSISTANT') {
+        messages.value.push({
+          content: item.content,
+          type: 'bot',
+          timestamp: new Date(item.createdAt).getTime()
+        })
+      }
+    }
+
+    await nextTick()
+    scrollToBottom()
+  } catch (error) {
+    console.error('Failed to load chat history:', error)
   }
 }
 
@@ -270,5 +325,31 @@ onMounted(() => {
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Action message styling */
+.message.action {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.action-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background-color: #f0f2f5;
+  border-left: 3px solid #909399;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #606266;
+  font-style: italic;
+  opacity: 0.8;
+  max-width: 90%;
+}
+
+.action-message .el-icon {
+  font-size: 14px;
+  color: #909399;
 }
 </style>

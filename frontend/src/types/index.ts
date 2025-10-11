@@ -3,12 +3,14 @@
  */
 
 export interface User {
+  id?: number
   username: string
   role: 'ADMIN' | 'CUSTOMER'
   email: string
 }
 
 export interface AuthResponse {
+  id: number
   token: string
   username: string
   role: string
