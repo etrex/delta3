@@ -13,6 +13,7 @@ import com.etrex.oms.service.ChatHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
@@ -35,28 +37,66 @@ public class ChatController {
             @RequestBody ChatRequest request,
             @AuthenticationPrincipal User user) {
 
-        // Use user ID as session ID
         String sessionId = String.valueOf(user.getId());
         Long userId = user.getId();
 
-        // Get recent actions to provide context
-        List<String> recentActions = chatHistoryService.getRecentActionsFormatted(sessionId, 3);
-        String messageWithContext = request.getMessage();
-        if (!recentActions.isEmpty()) {
-            messageWithContext = String.join("\n", recentActions) + "\n" + request.getMessage();
+        try {
+            // Get recent actions to provide context
+            List<String> recentActions = chatHistoryService.getRecentActionsFormatted(sessionId, 3);
+            String messageWithContext = request.getMessage();
+            if (!recentActions.isEmpty()) {
+                messageWithContext = String.join("\n", recentActions) + "\n" + request.getMessage();
+            }
+
+            // Save user message
+            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), request.getMessage());
+
+            // Get AI response (may throw exception)
+            String response = customerChatService.getAssistant().chat(messageWithContext);
+
+            // Save AI response
+            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.ASSISTANT.name(), response);
+
+            ChatResponse chatResponse = new ChatResponse();
+            chatResponse.setResponse(response);
+            chatResponse.setSessionId(sessionId);
+
+            return ResponseEntity.ok(chatResponse);
+
+        } catch (Exception e) {
+            return handleChatError(e, sessionId, userId);
+        }
+    }
+
+    private ResponseEntity<ChatResponse> handleChatError(Exception e, String sessionId, Long userId) {
+        // Log full error with stack trace
+        log.error("AI chat error for user {}", userId, e);
+
+        // Create error details
+        String errorType = e.getClass().getSimpleName();
+        String errorMsg = e.getMessage() != null ? e.getMessage() : "未知錯誤";
+
+        // Truncate if too long (max 80 chars)
+        if (errorMsg.length() > 80) {
+            errorMsg = errorMsg.substring(0, 80) + "...";
         }
 
-        // Save user message
-        chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), request.getMessage());
+        // Format user-friendly error
+        String userFriendlyError = String.format(
+            "❌ AI 服務暫時無法使用\n" +
+            "錯誤類型: %s\n" +
+            "錯誤訊息: %s\n" +
+            "請稍後再試或聯繫系統管理員",
+            errorType,
+            errorMsg
+        );
 
-        // Get AI response
-        String response = customerChatService.getAssistant().chat(messageWithContext);
+        // Save error to chat history
+        chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.ASSISTANT.name(), userFriendlyError);
 
-        // Save AI response
-        chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.ASSISTANT.name(), response);
-
+        // Return error response
         ChatResponse chatResponse = new ChatResponse();
-        chatResponse.setResponse(response);
+        chatResponse.setResponse(userFriendlyError);
         chatResponse.setSessionId(sessionId);
 
         return ResponseEntity.ok(chatResponse);
@@ -69,31 +109,35 @@ public class ChatController {
             @RequestBody ChatRequest request,
             @AuthenticationPrincipal User user) {
 
-        // Use user ID as session ID
         String sessionId = String.valueOf(user.getId());
         Long userId = user.getId();
 
-        // Get recent actions to provide context
-        List<String> recentActions = chatHistoryService.getRecentActionsFormatted(sessionId, 3);
-        String messageWithContext = request.getMessage();
-        if (!recentActions.isEmpty()) {
-            messageWithContext = String.join("\n", recentActions) + "\n" + request.getMessage();
+        try {
+            // Get recent actions to provide context
+            List<String> recentActions = chatHistoryService.getRecentActionsFormatted(sessionId, 3);
+            String messageWithContext = request.getMessage();
+            if (!recentActions.isEmpty()) {
+                messageWithContext = String.join("\n", recentActions) + "\n" + request.getMessage();
+            }
+
+            // Save user message
+            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), request.getMessage());
+
+            // Get AI response (may throw exception)
+            String response = adminChatService.getAssistant().chat(messageWithContext);
+
+            // Save AI response
+            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.ASSISTANT.name(), response);
+
+            ChatResponse chatResponse = new ChatResponse();
+            chatResponse.setResponse(response);
+            chatResponse.setSessionId(sessionId);
+
+            return ResponseEntity.ok(chatResponse);
+
+        } catch (Exception e) {
+            return handleChatError(e, sessionId, userId);
         }
-
-        // Save user message
-        chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), request.getMessage());
-
-        // Get AI response
-        String response = adminChatService.getAssistant().chat(messageWithContext);
-
-        // Save AI response
-        chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.ASSISTANT.name(), response);
-
-        ChatResponse chatResponse = new ChatResponse();
-        chatResponse.setResponse(response);
-        chatResponse.setSessionId(sessionId);
-
-        return ResponseEntity.ok(chatResponse);
     }
 
 

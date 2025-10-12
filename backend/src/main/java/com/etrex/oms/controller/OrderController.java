@@ -6,6 +6,7 @@ package com.etrex.oms.controller;
 import com.etrex.oms.dto.*;
 import com.etrex.oms.entity.User;
 import com.etrex.oms.exception.BusinessException;
+import com.etrex.oms.service.ChatHistoryService;
 import com.etrex.oms.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 @Tag(name = "Orders", description = "Order management APIs")
 public class OrderController {
     private final OrderService orderService;
+    private final ChatHistoryService chatHistoryService;
 
     @GetMapping
     @Operation(summary = "Get orders", description = "Get paginated list of orders")
@@ -35,25 +37,49 @@ public class OrderController {
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String status,
             Pageable pageable) {
-        return ResponseEntity.ok(orderService.getOrders(customerId, status, pageable));
+        Page<OrderDTO> result = orderService.getOrders(customerId, status, pageable);
+
+        // Track operation
+        chatHistoryService.track("查看訂單列表");
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Get single order details")
     public ResponseEntity<OrderDTO> getOrder(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.getOrderById(id));
+        OrderDTO result = orderService.getOrderById(id);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("查看訂單詳情 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/by-order-no/{orderNo}")
     @Operation(summary = "Get order by order number", description = "Get single order details by order number")
     public ResponseEntity<OrderDTO> getOrderByOrderNo(@PathVariable String orderNo) {
-        return ResponseEntity.ok(orderService.getOrderByOrderNo(orderNo));
+        OrderDTO result = orderService.getOrderByOrderNo(orderNo);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("查看訂單詳情 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}/events")
     @Operation(summary = "Get order events", description = "Get event history for an order")
     public ResponseEntity<java.util.List<OrderEventDTO>> getOrderEvents(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.getOrderEvents(id));
+        java.util.List<OrderEventDTO> result = orderService.getOrderEvents(id);
+
+        // Track operation
+        OrderDTO order = orderService.getOrderById(id);
+        chatHistoryService.track(
+            String.format("查看訂單事件 (訂單編號: %s)", order.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping
@@ -67,27 +93,52 @@ public class OrderController {
     public ResponseEntity<PaymentDTO> payOrder(
             @PathVariable Long id,
             @Valid @RequestBody PaymentDTO paymentDTO) {
-        return ResponseEntity.ok(orderService.initiatePayment(id, paymentDTO));
+        PaymentDTO result = orderService.initiatePayment(id, paymentDTO);
+
+        // Track payment with actual amount from result
+        chatHistoryService.track(
+            String.format("支付訂單 (訂單 ID: %d, 金額: %.2f, 支付方式: %s)",
+                id, result.getAmount(), result.getPaymentMethod()));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel order", description = "Cancel an order")
     public ResponseEntity<OrderDTO> cancelOrder(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.cancelOrder(id));
+        OrderDTO result = orderService.cancelOrder(id);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("取消訂單 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{id}/ship")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Ship order", description = "Mark order as shipped (Admin only)")
     public ResponseEntity<OrderDTO> shipOrder(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.shipOrder(id));
+        OrderDTO result = orderService.shipOrder(id);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("出貨訂單 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/by-order-no/{orderNo}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve order", description = "Approve order for shipping (Admin only)")
     public ResponseEntity<OrderDTO> approveOrder(@PathVariable String orderNo) {
-        return ResponseEntity.ok(orderService.approveOrder(orderNo));
+        OrderDTO result = orderService.approveOrder(orderNo);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("批准訂單 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/by-order-no/{orderNo}/ship")
@@ -96,13 +147,26 @@ public class OrderController {
     public ResponseEntity<OrderDTO> shipOrderWithDetails(
             @PathVariable String orderNo,
             @RequestBody ShippingRequest request) {
-        return ResponseEntity.ok(orderService.shipOrderWithDetails(
+        OrderDTO result = orderService.shipOrderWithDetails(
                 orderNo,
                 request.getTrackingNumber(),
                 request.getCarrier(),
                 request.getEstimatedDelivery(),
                 request.getNotes()
-        ));
+        );
+
+        // Track operation with shipping details
+        String trackingInfo = request.getTrackingNumber() != null
+            ? String.format(", 追蹤號碼: %s", request.getTrackingNumber())
+            : "";
+        String carrierInfo = request.getCarrier() != null
+            ? String.format(", 物流商: %s", request.getCarrier())
+            : "";
+        chatHistoryService.track(
+            String.format("出貨訂單 (訂單編號: %s%s%s)",
+                result.getOrderNo(), trackingInfo, carrierInfo));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/by-order-no/{orderNo}/deliver")
@@ -111,11 +175,17 @@ public class OrderController {
     public ResponseEntity<OrderDTO> deliverOrder(
             @PathVariable String orderNo,
             @RequestBody DeliveryRequest request) {
-        return ResponseEntity.ok(orderService.deliverOrder(
+        OrderDTO result = orderService.deliverOrder(
                 orderNo,
                 request.getDeliveredDate(),
                 request.getNotes()
-        ));
+        );
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("完成配送 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     // Request DTOs
@@ -139,14 +209,26 @@ public class OrderController {
     @Operation(summary = "Get cart", description = "Get current user's cart (order with CART status)")
     public ResponseEntity<OrderDTO> getCart() {
         User user = getCurrentUser();
-        return ResponseEntity.ok(orderService.getOrCreateCart(user));
+        OrderDTO result = orderService.getOrCreateCart(user);
+
+        // Track operation
+        chatHistoryService.track(user, "查看購物車");
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/cart/items")
     @Operation(summary = "Add item to cart", description = "Add a product to cart")
     public ResponseEntity<OrderDTO> addToCart(@Valid @RequestBody AddToCartRequest request) {
         User user = getCurrentUser();
-        return ResponseEntity.ok(orderService.addToCart(user, request.getProductId(), request.getQuantity()));
+        OrderDTO result = orderService.addToCart(user, request.getProductId(), request.getQuantity());
+
+        // Track operation with actual values
+        chatHistoryService.track(user,
+            String.format("加入商品到購物車 (商品 ID: %d, 數量: %d)",
+                request.getProductId(), request.getQuantity()));
+
+        return ResponseEntity.ok(result);
     }
 
     @PutMapping("/cart/items/{itemId}")
@@ -155,7 +237,14 @@ public class OrderController {
             @PathVariable Long itemId,
             @Valid @RequestBody UpdateCartItemRequest request) {
         User user = getCurrentUser();
-        return ResponseEntity.ok(orderService.updateCartItem(user, itemId, request.getQuantity()));
+        OrderDTO result = orderService.updateCartItem(user, itemId, request.getQuantity());
+
+        // Track operation with actual values
+        chatHistoryService.track(user,
+            String.format("更新購物車數量 (購物車項目 ID: %d, 數量: %d)",
+                itemId, request.getQuantity()));
+
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/cart/items/{itemId}")
@@ -163,6 +252,11 @@ public class OrderController {
     public ResponseEntity<Void> removeCartItem(@PathVariable Long itemId) {
         User user = getCurrentUser();
         orderService.removeCartItem(user, itemId);
+
+        // Track operation
+        chatHistoryService.track(user,
+            String.format("從購物車移除商品 (購物車項目 ID: %d)", itemId));
+
         return ResponseEntity.noContent().build();
     }
 
@@ -170,7 +264,13 @@ public class OrderController {
     @Operation(summary = "Checkout cart", description = "Convert cart to order (CART -> CREATED)")
     public ResponseEntity<OrderDTO> checkout() {
         User user = getCurrentUser();
-        return ResponseEntity.ok(orderService.checkoutCart(user));
+        OrderDTO result = orderService.checkoutCart(user);
+
+        // Track operation with order number
+        chatHistoryService.track(user,
+            String.format("結帳購物車 (訂單編號: %s)", result.getOrderNo()));
+
+        return ResponseEntity.ok(result);
     }
 
     private User getCurrentUser() {

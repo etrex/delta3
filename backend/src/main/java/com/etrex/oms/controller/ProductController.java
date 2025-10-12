@@ -5,6 +5,7 @@ package com.etrex.oms.controller;
 
 import com.etrex.oms.dto.ProductDTO;
 import com.etrex.oms.entity.Product;
+import com.etrex.oms.service.ChatHistoryService;
 import com.etrex.oms.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Products", description = "Product management APIs")
 public class ProductController {
     private final ProductService productService;
+    private final ChatHistoryService chatHistoryService;
 
     @GetMapping
     @Operation(summary = "Get all products", description = "Get paginated list of products")
@@ -31,20 +33,38 @@ public class ProductController {
             @RequestParam(required = false) String status,
             Pageable pageable) {
         Product.Status productStatus = status != null ? Product.Status.valueOf(status) : null;
-        return ResponseEntity.ok(productService.getProducts(keyword, productStatus, pageable));
+        Page<ProductDTO> result = productService.getProducts(keyword, productStatus, pageable);
+
+        // Track operation
+        chatHistoryService.track("瀏覽商品列表");
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get product by ID", description = "Get single product details")
     public ResponseEntity<ProductDTO> getProduct(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
+        ProductDTO result = productService.getProductById(id);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("查看商品詳情 (商品 ID: %d)", id));
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create product", description = "Create new product (Admin only)")
     public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO productDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.createProduct(productDTO));
+        ProductDTO result = productService.createProduct(productDTO);
+
+        // Track operation with product details
+        chatHistoryService.track(
+            String.format("新增商品 (商品 ID: %d, 名稱: %s, 價格: %.2f)",
+                result.getId(), result.getName(), result.getPrice()));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PutMapping("/{id}")
@@ -53,7 +73,13 @@ public class ProductController {
     public ResponseEntity<ProductDTO> updateProduct(
             @PathVariable Long id,
             @Valid @RequestBody ProductDTO productDTO) {
-        return ResponseEntity.ok(productService.updateProduct(id, productDTO));
+        ProductDTO result = productService.updateProduct(id, productDTO);
+
+        // Track operation with product details
+        chatHistoryService.track(
+            String.format("更新商品 (商品 ID: %d, 名稱: %s)", result.getId(), result.getName()));
+
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/{id}")
@@ -61,6 +87,11 @@ public class ProductController {
     @Operation(summary = "Delete product", description = "Soft delete product (Admin only)")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
+
+        // Track operation
+        chatHistoryService.track(
+            String.format("刪除商品 (商品 ID: %d)", id));
+
         return ResponseEntity.noContent().build();
     }
 }

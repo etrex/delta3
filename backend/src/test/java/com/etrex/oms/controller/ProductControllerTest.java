@@ -5,6 +5,7 @@ package com.etrex.oms.controller;
 
 import com.etrex.oms.dto.ProductDTO;
 import com.etrex.oms.entity.Product;
+import com.etrex.oms.service.ChatHistoryService;
 import com.etrex.oms.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,9 @@ class ProductControllerTest {
 
     @MockBean
     private ProductService productService;
+
+    @MockBean
+    private ChatHistoryService chatHistoryService;
 
     private ProductDTO testProduct;
 

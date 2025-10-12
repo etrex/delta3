@@ -4,8 +4,12 @@
 package com.etrex.oms.service;
 
 import com.etrex.oms.entity.ChatHistory;
+import com.etrex.oms.entity.User;
 import com.etrex.oms.repository.ChatHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatHistoryService {
@@ -114,5 +119,45 @@ public class ChatHistoryService {
      */
     public List<ChatHistory> getHistoryByUserId(Long userId) {
         return chatHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    /**
+     * Track user operation - simple one-line interface for controllers
+     * Automatically gets current user from security context
+     *
+     * @param description Human-readable description of what user did
+     */
+    @Transactional
+    public void track(String description) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof User) {
+                User user = (User) auth.getPrincipal();
+                String sessionId = String.valueOf(user.getId());
+                saveAction(sessionId, user.getId(), "api_call", description);
+                log.debug("Tracked: {} for user {}", description, user.getUsername());
+            }
+        } catch (Exception e) {
+            log.error("Failed to track operation: {}", description, e);
+            // Don't fail the request if tracking fails
+        }
+    }
+
+    /**
+     * Track user operation with explicit user
+     *
+     * @param user User who performed the action
+     * @param description Human-readable description of what user did
+     */
+    @Transactional
+    public void track(User user, String description) {
+        try {
+            String sessionId = String.valueOf(user.getId());
+            saveAction(sessionId, user.getId(), "api_call", description);
+            log.debug("Tracked: {} for user {}", description, user.getUsername());
+        } catch (Exception e) {
+            log.error("Failed to track operation: {}", description, e);
+            // Don't fail the request if tracking fails
+        }
     }
 }
