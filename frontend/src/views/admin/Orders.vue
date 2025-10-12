@@ -225,10 +225,10 @@ const selectedOrder = ref<Order | null>(null)
 const newStatus = ref('')
 
 onMounted(async () => {
-  await loadOrders()
+  await loadOrders(true) // Track only on initial page load
 })
 
-async function loadOrders() {
+async function loadOrders(trackPageView: boolean = false) {
   try {
     const params: any = {
       page: currentPage.value - 1,
@@ -244,7 +244,11 @@ async function loadOrders() {
       params.search = searchKeyword.value
     }
 
-    const data = await ordersApi.getOrders(params)
+    const data = await ordersApi.getOrders(
+      params,
+      trackPageView,  // Only track if explicitly requested
+      trackPageView ? 'orders' : undefined
+    )
 
     if (data.content) {
       orders.value = data.content

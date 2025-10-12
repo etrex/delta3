@@ -36,11 +36,23 @@ public class OrderController {
     public ResponseEntity<Page<OrderDTO>> getOrders(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "true") boolean tracking,
+            @RequestParam(required = false) String context,
             Pageable pageable) {
         Page<OrderDTO> result = orderService.getOrders(customerId, status, pageable);
 
-        // Track operation
-        chatHistoryService.track("查看訂單列表");
+        // Track operation only if tracking=true
+        if (tracking && context != null) {
+            String message = switch (context.toLowerCase()) {
+                case "dashboard" -> "查看儀表板";
+                case "orders" -> "查看訂單管理頁面";
+                case "shipping" -> "查看出貨管理頁面";
+                default -> "查看訂單列表";
+            };
+            chatHistoryService.track(message);
+        } else if (tracking) {
+            chatHistoryService.track("查看訂單列表");
+        }
 
         return ResponseEntity.ok(result);
     }

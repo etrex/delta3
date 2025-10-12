@@ -37,6 +37,13 @@
             <el-icon><Operation /></el-icon>
             <span>{{ message.content }}</span>
           </div>
+          <div v-else-if="message.type === 'navigation'" class="navigation-message">
+            <el-icon class="navigation-icon"><Position /></el-icon>
+            <div class="navigation-content">
+              <div class="navigation-text">{{ message.content }}</div>
+              <div class="navigation-path">正在跳轉至：{{ message.navigationPath }}</div>
+            </div>
+          </div>
           <div v-else>
             <div class="message-content">
               {{ message.content }}
@@ -78,7 +85,9 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
-import { ChatRound, Close, Loading, Operation } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { ChatRound, Close, Loading, Operation, Position } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import chatApi from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
@@ -86,12 +95,14 @@ import { useChatTracking } from '@/composables/useChatTracking'
 
 interface Message {
   content: string
-  type: 'user' | 'bot' | 'action'
+  type: 'user' | 'bot' | 'action' | 'navigation'
   timestamp: number
+  navigationPath?: string
 }
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const router = useRouter()
 const isOpen = ref(false)
 const currentMessage = ref('')
 const messages = ref<Message[]>([])
@@ -141,11 +152,15 @@ const loadChatHistory = async () => {
           timestamp: new Date(item.createdAt).getTime()
         })
       } else if (item.role === 'ASSISTANT') {
-        messages.value.push({
-          content: item.content,
-          type: 'bot',
-          timestamp: new Date(item.createdAt).getTime()
-        })
+        // Parse and remove navigation commands from history
+        const { cleanContent } = parseNavigationCommand(item.content)
+        if (cleanContent) {
+          messages.value.push({
+            content: cleanContent,
+            type: 'bot',
+            timestamp: new Date(item.createdAt).getTime()
+          })
+        }
       }
     }
 
@@ -154,6 +169,22 @@ const loadChatHistory = async () => {
   } catch (error) {
     console.error('Failed to load chat history:', error)
   }
+}
+
+/**
+ * Parse navigation commands from AI response
+ * Format: [NAVIGATE:/path/to/page]
+ * Example: [NAVIGATE:/products] or [NAVIGATE:/orders/123]
+ */
+const parseNavigationCommand = (content: string): { path: string | null; cleanContent: string } => {
+  const navRegex = /\[NAVIGATE:([^\]]+)\]/g
+  let path: string | null = null
+  const cleanContent = content.replace(navRegex, (match, capturedPath) => {
+    path = capturedPath
+    return '' // Remove the command from display
+  }).trim()
+
+  return { path, cleanContent }
 }
 
 const sendMessage = async () => {
@@ -171,19 +202,49 @@ const sendMessage = async () => {
   isLoading.value = true
 
   try {
+    // Build page context
+    const pageContext = {
+      path: router.currentRoute.value.path,
+      title: router.currentRoute.value.meta?.title as string || router.currentRoute.value.name as string || undefined,
+      pageType: router.currentRoute.value.meta?.pageType as string || undefined
+    }
+
     // Use different API based on user role
     const response = authStore.user?.role === 'ADMIN'
-      ? await chatApi.sendAdminMessage(userMessage)
-      : await chatApi.sendMessage(userMessage)
+      ? await chatApi.sendAdminMessage(userMessage, pageContext)
+      : await chatApi.sendMessage(userMessage, pageContext)
 
     console.log('Chat response:', response)
 
-    // Add bot response
-    messages.value.push({
-      content: response.response || response.message || '無回應',
-      type: 'bot',
-      timestamp: Date.now()
-    })
+    const botResponse = response.response || response.message || '無回應'
+
+    // Parse navigation command if present
+    const { path, cleanContent } = parseNavigationCommand(botResponse)
+
+    // If navigation command found, show special navigation message
+    if (path) {
+      messages.value.push({
+        content: cleanContent || '正在為您導航',
+        type: 'navigation',
+        timestamp: Date.now(),
+        navigationPath: path
+      })
+
+      await nextTick()
+      scrollToBottom()
+
+      // Navigate after a short delay (keep chat open)
+      setTimeout(() => {
+        router.push(path)
+      }, 1000)
+    } else if (cleanContent) {
+      // Add normal bot response if no navigation
+      messages.value.push({
+        content: cleanContent,
+        type: 'bot',
+        timestamp: Date.now()
+      })
+    }
   } catch (error) {
     console.error('Chat error:', error)
     messages.value.push({
@@ -351,5 +412,71 @@ onMounted(() => {
 .action-message .el-icon {
   font-size: 14px;
   color: #909399;
+}
+
+/* Navigation message styling */
+.message.navigation {
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.navigation-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  animation: slideInScale 0.3s ease-out;
+}
+
+.navigation-icon {
+  font-size: 24px;
+  color: white;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.navigation-content {
+  flex: 1;
+  color: white;
+}
+
+.navigation-text {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.navigation-path {
+  font-size: 12px;
+  opacity: 0.9;
+  padding: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  display: inline-block;
+  font-family: monospace;
+}
+
+@keyframes slideInScale {
+  from {
+    transform: translateY(10px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 </style>

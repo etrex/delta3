@@ -10,6 +10,7 @@ import com.etrex.oms.dto.ChatResponse;
 import com.etrex.oms.entity.ChatHistory;
 import com.etrex.oms.entity.User;
 import com.etrex.oms.service.ChatHistoryService;
+import com.etrex.oms.service.ChatContextService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class ChatController {
     private final CustomerChatService customerChatService;
     private final AdminChatService adminChatService;
     private final ChatHistoryService chatHistoryService;
+    private final ChatContextService chatContextService;
 
     @PostMapping
     @Operation(summary = "Customer chat", description = "Customer chat with AI assistant (tool calling enabled)")
@@ -41,15 +43,15 @@ public class ChatController {
         Long userId = user.getId();
 
         try {
-            // Get recent actions to provide context
-            List<String> recentActions = chatHistoryService.getRecentActionsFormatted(sessionId, 3);
-            String messageWithContext = request.getMessage();
-            if (!recentActions.isEmpty()) {
-                messageWithContext = String.join("\n", recentActions) + "\n" + request.getMessage();
-            }
+            // Get user message
+            String userMessage = request.getMessage();
 
-            // Save user message
-            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), request.getMessage());
+            // Build dynamic context (cart + current page) - append at the END
+            String dynamicContext = chatContextService.buildDynamicContext(user, request.getPageContext());
+            String messageWithContext = userMessage + dynamicContext;
+
+            // Save user message (without dynamic context to keep history clean)
+            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), userMessage);
 
             // Get AI response (may throw exception)
             String response = customerChatService.getAssistant().chat(messageWithContext);
@@ -113,15 +115,15 @@ public class ChatController {
         Long userId = user.getId();
 
         try {
-            // Get recent actions to provide context
-            List<String> recentActions = chatHistoryService.getRecentActionsFormatted(sessionId, 3);
-            String messageWithContext = request.getMessage();
-            if (!recentActions.isEmpty()) {
-                messageWithContext = String.join("\n", recentActions) + "\n" + request.getMessage();
-            }
+            // Get user message
+            String userMessage = request.getMessage();
 
-            // Save user message
-            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), request.getMessage());
+            // Build dynamic context (cart + current page) - append at the END
+            String dynamicContext = chatContextService.buildDynamicContext(user, request.getPageContext());
+            String messageWithContext = userMessage + dynamicContext;
+
+            // Save user message (without dynamic context to keep history clean)
+            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), userMessage);
 
             // Get AI response (may throw exception)
             String response = adminChatService.getAssistant().chat(messageWithContext);

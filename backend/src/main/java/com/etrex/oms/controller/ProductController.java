@@ -32,12 +32,21 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "true") boolean tracking,
+            @RequestParam(required = false) String context,
             Pageable pageable) {
         Product.Status productStatus = status != null ? Product.Status.valueOf(status) : null;
         Page<ProductDTO> result = productService.getProducts(keyword, productStatus, pageable);
 
         // Track operation only if tracking=true
-        if (tracking) {
+        if (tracking && context != null) {
+            String message = switch (context.toLowerCase()) {
+                case "dashboard" -> "查看儀表板";
+                case "products" -> "查看商品管理頁面";
+                case "customer_products" -> "瀏覽商品列表";
+                default -> "瀏覽商品列表";
+            };
+            chatHistoryService.track(message);
+        } else if (tracking) {
             chatHistoryService.track("瀏覽商品列表");
         }
 

@@ -10,7 +10,7 @@ const API_BASE_URL = 'http://localhost:8080/api'
 
 const instance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 300000, // 300 seconds for AI chat operations
   headers: {
     'Content-Type': 'application/json'
   }

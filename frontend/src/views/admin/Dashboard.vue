@@ -162,8 +162,11 @@ onMounted(async () => {
 
 async function loadDashboardData() {
   try {
-    // Load orders
-    const ordersResponse = await ordersApi.getOrders({ size: 5, sort: 'createdAt,desc' })
+    // Load orders (disable tracking for background data loading)
+    const ordersResponse = await ordersApi.getOrders(
+      { size: 5, sort: 'createdAt,desc' },
+      false  // tracking=false for dashboard
+    )
     const orders = ordersResponse.content || ordersResponse || []
     recentOrders.value = orders.slice(0, 5)
 
@@ -180,8 +183,8 @@ async function loadDashboardData() {
       return sum
     }, 0)
 
-    // Load products
-    const productsResponse = await productsApi.getProducts()
+    // Load products (disable tracking for background data loading)
+    const productsResponse = await productsApi.getProducts({}, false)  // tracking=false for dashboard
     const products = productsResponse.content || productsResponse || []
     stats.value.totalProducts = products.length
 

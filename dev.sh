@@ -39,8 +39,9 @@ if ! command -v ollama &> /dev/null; then
 else
     # Start Ollama if not running
     if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-        echo "🤖 Starting Ollama..."
-        ollama serve > /dev/null 2>&1 &
+        echo "🤖 Starting Ollama with debug mode..."
+        echo "   (KV cache statistics will be logged)"
+        OLLAMA_DEBUG=1 OLLAMA_KEEP_ALIVE=-1 ollama serve > ollama.log 2>&1 &
         sleep 5
     fi
 fi
@@ -78,6 +79,10 @@ echo "   ⚙️  Backend:     http://localhost:8080/api"
 echo "   📚 API Docs:     http://localhost:8080/api/swagger-ui.html"
 echo "   🗄️  Database:    http://localhost:8080/api/h2-console"
 echo "   🤖 AI Service:   http://localhost:11434"
+echo ""
+echo "📊 Debug Logs:"
+echo "   Backend:       backend/backend.log"
+echo "   Ollama:        ollama.log (KV cache stats: grep 'used=' ollama.log)"
 echo ""
 echo "🔐 Test Accounts:"
 echo "   👤 Admin:      admin / password"

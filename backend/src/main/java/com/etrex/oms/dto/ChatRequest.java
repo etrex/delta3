@@ -14,4 +14,15 @@ public class ChatRequest {
     // For action recording
     private String actionType;    // navigate, click, submit, etc.
     private String actionTarget;  // path, button id, etc.
+
+    // Page context for better AI understanding
+    private PageContext pageContext;
+
+    @Data
+    public static class PageContext {
+        private String path;           // Current page path, e.g., "/products"
+        private String title;          // Page title for context
+        private String pageType;       // e.g., "product_list", "product_detail", "checkout"
+        private Object data;           // Optional: key data from current page
+    }
 }

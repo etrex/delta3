@@ -58,6 +58,12 @@ langchain4j:
     model-name: qwen2.5:14b
     timeout: 60s
 
+# Logging configuration
+logging:
+  level:
+    dev.langchain4j: DEBUG
+    com.etrex.oms.ai: DEBUG
+
 cors:
   allowed-origins: http://localhost:5173
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS

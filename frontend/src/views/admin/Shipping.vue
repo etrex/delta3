@@ -424,7 +424,7 @@ onMounted(async () => {
     return
   }
 
-  await loadOrders()
+  await loadOrders(true)  // Track only on initial page load
 
   // 監聽即時更新事件
   window.addEventListener('shipping-status-updated', handleShippingStatusUpdate)
@@ -435,7 +435,7 @@ onUnmounted(() => {
 })
 
 // API 調用
-async function loadOrders() {
+async function loadOrders(trackPageView: boolean = false) {
   try {
     // 調用真實的後端 API 載入訂單
     const params: any = {
@@ -443,7 +443,11 @@ async function loadOrders() {
       size: 100
     }
 
-    const response = await ordersApi.getOrders(params)
+    const response = await ordersApi.getOrders(
+      params,
+      trackPageView,  // Only track if explicitly requested
+      trackPageView ? 'shipping' : undefined
+    )
     let loadedOrders = response.content || response || []
 
     // 應用前端篩選

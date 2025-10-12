@@ -5,8 +5,8 @@ import axios from './axios'
 import type { CreateOrderRequest, Payment } from '@/types'
 
 export default {
-  getOrders(params?: any) {
-    return axios.get('/orders', { params })
+  getOrders(params?: any, tracking: boolean = true, context?: string) {
+    return axios.get('/orders', { params: { ...params, tracking, context } })
   },
 
   getOrder(id: number) {
