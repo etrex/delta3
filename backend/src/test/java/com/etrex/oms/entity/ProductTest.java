@@ -5,7 +5,6 @@ package com.etrex.oms.entity;
 
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,7 +18,7 @@ class ProductTest {
         product.setId(1L);
         product.setName("Test Product");
         product.setDescription("Test Description");
-        product.setPrice(new BigDecimal("99.99"));
+        product.setPrice(1000);
         product.setStock(100);
         product.setStatus(Product.Status.ACTIVE);
         LocalDateTime now = LocalDateTime.now();
@@ -28,7 +27,7 @@ class ProductTest {
         assertEquals(1L, product.getId());
         assertEquals("Test Product", product.getName());
         assertEquals("Test Description", product.getDescription());
-        assertEquals(new BigDecimal("99.99"), product.getPrice());
+        assertEquals(1000, product.getPrice());
         assertEquals(100, product.getStock());
         assertEquals(Product.Status.ACTIVE, product.getStatus());
         assertEquals(now, product.getCreatedAt());

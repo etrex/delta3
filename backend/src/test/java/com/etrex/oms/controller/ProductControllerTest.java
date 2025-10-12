@@ -20,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -53,7 +52,7 @@ class ProductControllerTest {
         testProduct.setId(1L);
         testProduct.setName("Test Product");
         testProduct.setDescription("Test Description");
-        testProduct.setPrice(new BigDecimal("99.99"));
+        testProduct.setPrice(1000);
         testProduct.setStock(100);
         testProduct.setStatus("ACTIVE");
     }
@@ -70,7 +69,7 @@ class ProductControllerTest {
                         .param("status", "ACTIVE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("Test Product"))
-                .andExpect(jsonPath("$.content[0].price").value(99.99));
+                .andExpect(jsonPath("$.content[0].price").value(1000));
     }
 
     @Test

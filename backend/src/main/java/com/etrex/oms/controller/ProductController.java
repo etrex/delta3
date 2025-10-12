@@ -31,12 +31,15 @@ public class ProductController {
     public ResponseEntity<Page<ProductDTO>> getProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "true") boolean tracking,
             Pageable pageable) {
         Product.Status productStatus = status != null ? Product.Status.valueOf(status) : null;
         Page<ProductDTO> result = productService.getProducts(keyword, productStatus, pageable);
 
-        // Track operation
-        chatHistoryService.track("瀏覽商品列表");
+        // Track operation only if tracking=true
+        if (tracking) {
+            chatHistoryService.track("瀏覽商品列表");
+        }
 
         return ResponseEntity.ok(result);
     }
@@ -61,7 +64,7 @@ public class ProductController {
 
         // Track operation with product details
         chatHistoryService.track(
-            String.format("新增商品 (商品 ID: %d, 名稱: %s, 價格: %.2f)",
+            String.format("新增商品 (商品 ID: %d, 名稱: %s, 價格: %d)",
                 result.getId(), result.getName(), result.getPrice()));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);

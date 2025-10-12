@@ -5,8 +5,6 @@ import com.etrex.oms.dto.ProductDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
-import java.math.BigDecimal;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -18,7 +16,7 @@ public class CreateProductTest extends BaseAcceptanceTest {
         ProductDTO newProduct = new ProductDTO();
         newProduct.setName("新商品");
         newProduct.setDescription("測試商品");
-        newProduct.setPrice(BigDecimal.valueOf(299.99));
+        newProduct.setPrice(3000);
         newProduct.setStock(50);
         newProduct.setStatus("ACTIVE");
 

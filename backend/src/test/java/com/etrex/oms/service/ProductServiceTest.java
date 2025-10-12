@@ -18,7 +18,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
@@ -46,7 +45,7 @@ class ProductServiceTest {
         testProduct.setId(1L);
         testProduct.setName("Test Product");
         testProduct.setDescription("Test Description");
-        testProduct.setPrice(new BigDecimal("99.99"));
+        testProduct.setPrice(1000);
         testProduct.setStock(100);
         testProduct.setStatus(Product.Status.ACTIVE);
         testProduct.setCreatedAt(LocalDateTime.now());
@@ -55,7 +54,7 @@ class ProductServiceTest {
         testProductDTO.setId(1L);
         testProductDTO.setName("Test Product");
         testProductDTO.setDescription("Test Description");
-        testProductDTO.setPrice(new BigDecimal("99.99"));
+        testProductDTO.setPrice(1000);
         testProductDTO.setStock(100);
         testProductDTO.setStatus("ACTIVE");
     }
@@ -145,7 +144,7 @@ class ProductServiceTest {
         ProductDTO updateDTO = new ProductDTO();
         updateDTO.setName("Updated Product");
         updateDTO.setDescription("Updated Description");
-        updateDTO.setPrice(new BigDecimal("199.99"));
+        updateDTO.setPrice(2000);
         updateDTO.setStock(200);
         updateDTO.setStatus("ACTIVE");
 
@@ -153,7 +152,7 @@ class ProductServiceTest {
         updatedProduct.setId(1L);
         updatedProduct.setName("Updated Product");
         updatedProduct.setDescription("Updated Description");
-        updatedProduct.setPrice(new BigDecimal("199.99"));
+        updatedProduct.setPrice(2000);
         updatedProduct.setStock(200);
         updatedProduct.setStatus(Product.Status.ACTIVE);
         updatedProduct.setCreatedAt(LocalDateTime.now());
@@ -165,7 +164,7 @@ class ProductServiceTest {
 
         assertNotNull(result);
         assertEquals("Updated Product", result.getName());
-        assertEquals(new BigDecimal("199.99"), result.getPrice());
+        assertEquals(2000, result.getPrice());
         assertEquals(200, result.getStock());
         verify(productRepository, times(1)).findById(1L);
         verify(productRepository, times(1)).save(any(Product.class));
@@ -176,7 +175,7 @@ class ProductServiceTest {
         ProductDTO updateDTO = new ProductDTO();
         updateDTO.setName("Updated Product");
         updateDTO.setDescription("Updated Description");
-        updateDTO.setPrice(new BigDecimal("199.99"));
+        updateDTO.setPrice(2000);
         updateDTO.setStock(200);
         updateDTO.setStatus("ACTIVE");
 

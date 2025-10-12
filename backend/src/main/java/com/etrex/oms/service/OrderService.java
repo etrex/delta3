@@ -16,7 +16,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +43,7 @@ public class OrderService {
         order.setCustomer(customer);
         order.setStatus(Order.Status.CREATED);
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        Integer totalAmount = 0;
         List<OrderItem> items = new ArrayList<>();
 
         for (CreateOrderRequest.OrderItemRequest itemDTO : request.getItems()) {
@@ -62,7 +61,7 @@ public class OrderService {
             item.setPrice(product.getPrice());
 
             items.add(item);
-            totalAmount = totalAmount.add(product.getPrice().multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
+            totalAmount += product.getPrice() * itemDTO.getQuantity();
 
             productService.updateStock(product.getId(), itemDTO.getQuantity());
         }
@@ -403,7 +402,7 @@ public class OrderService {
                     newCart.setCustomer(user);
                     newCart.setStatus(Order.Status.CART);
                     newCart.setOrderNo(generateOrderNo());  // Generate order number at creation
-                    newCart.setTotalAmount(BigDecimal.ZERO);
+                    newCart.setTotalAmount(0);
                     return orderRepository.save(newCart);
                 });
 
@@ -430,7 +429,7 @@ public class OrderService {
                     newCart.setCustomer(user);
                     newCart.setStatus(Order.Status.CART);
                     newCart.setOrderNo(generateOrderNo());  // Generate order number at creation
-                    newCart.setTotalAmount(BigDecimal.ZERO);
+                    newCart.setTotalAmount(0);
                     return orderRepository.save(newCart);
                 });
 
@@ -541,9 +540,9 @@ public class OrderService {
     }
 
     private void recalculateCartTotal(Order cart) {
-        BigDecimal total = cart.getItems().stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Integer total = cart.getItems().stream()
+                .map(item -> item.getPrice() * item.getQuantity())
+                .reduce(0, Integer::sum);
         cart.setTotalAmount(total);
     }
 

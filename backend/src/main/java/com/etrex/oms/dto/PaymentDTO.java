@@ -6,7 +6,6 @@ package com.etrex.oms.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -20,8 +19,8 @@ public class PaymentDTO {
     private String paymentMethod;
 
     @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal amount;
+    @Min(value = 1, message = "Amount must be greater than 0")
+    private Integer amount;
 
     private String status;
     private String transactionId;

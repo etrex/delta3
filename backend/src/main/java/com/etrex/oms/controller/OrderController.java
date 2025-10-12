@@ -52,7 +52,7 @@ public class OrderController {
 
         // Track operation
         chatHistoryService.track(
-            String.format("查看訂單詳情 (訂單編號: %s)", result.getOrderNo()));
+            String.format("查看訂單詳情 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }
@@ -64,7 +64,7 @@ public class OrderController {
 
         // Track operation
         chatHistoryService.track(
-            String.format("查看訂單詳情 (訂單編號: %s)", result.getOrderNo()));
+            String.format("查看訂單詳情 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }
@@ -74,10 +74,7 @@ public class OrderController {
     public ResponseEntity<java.util.List<OrderEventDTO>> getOrderEvents(@PathVariable Long id) {
         java.util.List<OrderEventDTO> result = orderService.getOrderEvents(id);
 
-        // Track operation
-        OrderDTO order = orderService.getOrderById(id);
-        chatHistoryService.track(
-            String.format("查看訂單事件 (訂單編號: %s)", order.getOrderNo()));
+        // Note: Events 只是訂單詳情的一部分，不需要單獨追蹤
 
         return ResponseEntity.ok(result);
     }
@@ -97,7 +94,7 @@ public class OrderController {
 
         // Track payment with actual amount from result
         chatHistoryService.track(
-            String.format("支付訂單 (訂單 ID: %d, 金額: %.2f, 支付方式: %s)",
+            String.format("支付訂單 (訂單 ID: %d, 金額: %d, 支付方式: %s)",
                 id, result.getAmount(), result.getPaymentMethod()));
 
         return ResponseEntity.ok(result);
@@ -110,7 +107,7 @@ public class OrderController {
 
         // Track operation
         chatHistoryService.track(
-            String.format("取消訂單 (訂單編號: %s)", result.getOrderNo()));
+            String.format("取消訂單 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }
@@ -123,7 +120,7 @@ public class OrderController {
 
         // Track operation
         chatHistoryService.track(
-            String.format("出貨訂單 (訂單編號: %s)", result.getOrderNo()));
+            String.format("出貨訂單 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }
@@ -136,7 +133,7 @@ public class OrderController {
 
         // Track operation
         chatHistoryService.track(
-            String.format("批准訂單 (訂單編號: %s)", result.getOrderNo()));
+            String.format("批准訂單 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }
@@ -163,8 +160,8 @@ public class OrderController {
             ? String.format(", 物流商: %s", request.getCarrier())
             : "";
         chatHistoryService.track(
-            String.format("出貨訂單 (訂單編號: %s%s%s)",
-                result.getOrderNo(), trackingInfo, carrierInfo));
+            String.format("出貨訂單 (訂單 ID: %d%s%s)",
+                result.getId(), trackingInfo, carrierInfo));
 
         return ResponseEntity.ok(result);
     }
@@ -183,7 +180,7 @@ public class OrderController {
 
         // Track operation
         chatHistoryService.track(
-            String.format("完成配送 (訂單編號: %s)", result.getOrderNo()));
+            String.format("完成配送 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }
@@ -207,12 +204,24 @@ public class OrderController {
 
     @GetMapping("/cart")
     @Operation(summary = "Get cart", description = "Get current user's cart (order with CART status)")
-    public ResponseEntity<OrderDTO> getCart() {
+    public ResponseEntity<OrderDTO> getCart(
+            @RequestParam(defaultValue = "true") boolean tracking,
+            @RequestParam(required = false) String context) {
         User user = getCurrentUser();
         OrderDTO result = orderService.getOrCreateCart(user);
 
-        // Track operation
-        chatHistoryService.track(user, "查看購物車");
+        // Track operation with context
+        if (tracking && context != null) {
+            String message = switch (context.toLowerCase()) {
+                case "sidebar" -> "查看購物車";
+                case "checkout" -> "進入結帳頁面";
+                default -> "查看購物車";
+            };
+            chatHistoryService.track(user, message);
+        } else if (tracking) {
+            // Default tracking message if no context provided
+            chatHistoryService.track(user, "查看購物車");
+        }
 
         return ResponseEntity.ok(result);
     }
@@ -266,9 +275,9 @@ public class OrderController {
         User user = getCurrentUser();
         OrderDTO result = orderService.checkoutCart(user);
 
-        // Track operation with order number
+        // Track operation with order ID
         chatHistoryService.track(user,
-            String.format("結帳購物車 (訂單編號: %s)", result.getOrderNo()));
+            String.format("結帳購物車 (訂單 ID: %d)", result.getId()));
 
         return ResponseEntity.ok(result);
     }

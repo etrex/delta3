@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,7 +29,7 @@ public class Payment {
     private PaymentMethod paymentMethod;
 
     @Column(nullable = false)
-    private BigDecimal amount;
+    private Integer amount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

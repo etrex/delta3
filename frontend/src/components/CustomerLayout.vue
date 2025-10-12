@@ -122,13 +122,13 @@ const totalAmount = computed(() => cartStore.totalAmount)
 const totalItems = computed(() => cartStore.totalItems)
 
 onMounted(async () => {
-  await cartStore.loadCart()
+  await cartStore.loadCart({ tracking: false }) // Background load, no tracking
 })
 
 // Watch for cart drawer opening to reload cart
 watch(cartDrawerVisible, async (newValue) => {
   if (newValue) {
-    await cartStore.loadCart()
+    await cartStore.loadCart({ tracking: true, context: 'sidebar' }) // User clicked cart icon
   }
 })
 

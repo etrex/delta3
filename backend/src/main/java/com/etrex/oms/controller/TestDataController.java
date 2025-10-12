@@ -14,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -84,7 +83,7 @@ public class TestDataController {
     public static class ProductSeedRequest {
         private String name;
         private String description;
-        private BigDecimal price;
+        private Integer price;
         private Integer stock;
         private String status;
     }

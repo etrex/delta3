@@ -19,7 +19,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,14 +73,14 @@ class OrderServiceTest {
         testProduct = new Product();
         testProduct.setId(1L);
         testProduct.setName("Test Product");
-        testProduct.setPrice(new BigDecimal("99.99"));
+        testProduct.setPrice(1000);
         testProduct.setStock(100);
 
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setOrderNo("ORD-001");
         testOrder.setCustomer(testCustomer);
-        testOrder.setTotalAmount(new BigDecimal("99.99"));
+        testOrder.setTotalAmount(99);
         testOrder.setStatus(Order.Status.CREATED);
         testOrder.setCreatedAt(LocalDateTime.now());
 
@@ -90,14 +89,14 @@ class OrderServiceTest {
         testOrderItem.setOrder(testOrder);
         testOrderItem.setProduct(testProduct);
         testOrderItem.setQuantity(1);
-        testOrderItem.setPrice(new BigDecimal("99.99"));
+        testOrderItem.setPrice(1000);
 
         testOrder.setItems(Arrays.asList(testOrderItem));
 
         testPayment = new Payment();
         testPayment.setId(1L);
         testPayment.setOrder(testOrder);
-        testPayment.setAmount(new BigDecimal("99.99"));
+        testPayment.setAmount(99);
         testPayment.setStatus(Payment.Status.SUCCESS);
         testPayment.setPaymentMethod(Payment.PaymentMethod.CREDIT_CARD);
         testPayment.setTransactionId("TXN-001");

@@ -3,8 +3,12 @@ import type { Order } from '@/types'
 
 export default {
   // Get current user's cart
-  getCart() {
-    return axios.get<Order>('/orders/cart')
+  getCart(options?: { tracking?: boolean; context?: 'sidebar' | 'checkout' }) {
+    const tracking = options?.tracking ?? true
+    const context = options?.context
+    return axios.get<Order>('/orders/cart', {
+      params: { tracking, context }
+    })
   },
 
   // Add item to cart

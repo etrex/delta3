@@ -22,7 +22,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 
@@ -56,12 +55,12 @@ class OrderControllerTest {
         testOrder.setOrderNo("ORD-001");
         testOrder.setCustomerId(1L);
         testOrder.setCustomerName("Test Customer");
-        testOrder.setTotalAmount(new BigDecimal("199.99"));
+        testOrder.setTotalAmount(199);
         testOrder.setStatus("CREATED");
 
         testPayment = new PaymentDTO();
         testPayment.setId(1L);
-        testPayment.setAmount(new BigDecimal("199.99"));
+        testPayment.setAmount(199);
         testPayment.setStatus("SUCCESS");
         testPayment.setPaymentMethod("CREDIT_CARD");
 

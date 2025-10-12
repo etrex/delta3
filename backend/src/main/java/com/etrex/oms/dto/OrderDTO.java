@@ -5,7 +5,6 @@ package com.etrex.oms.dto;
 
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,7 +14,7 @@ public class OrderDTO {
     private String orderNo;
     private Long customerId;
     private String customerName;
-    private BigDecimal totalAmount;
+    private Integer totalAmount;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

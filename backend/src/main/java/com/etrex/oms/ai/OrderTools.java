@@ -27,7 +27,7 @@ public class OrderTools {
             StringBuilder result = new StringBuilder("找到以下商品：\n");
 
             for (ProductDTO product : products.getContent()) {
-                result.append(String.format("- %s：NT$%.2f，庫存：%d\n",
+                result.append(String.format("- %s：NT$%d，庫存：%d\n",
                     product.getName(), product.getPrice(), product.getStock()));
             }
 
@@ -41,7 +41,7 @@ public class OrderTools {
     public String getProductDetails(Long productId) {
         try {
             ProductDTO product = productService.getProductById(productId);
-            return String.format("商品詳情：\n名稱：%s\n描述：%s\n價格：NT$%.2f\n庫存：%d\n狀態：%s",
+            return String.format("商品詳情：\n名稱：%s\n描述：%s\n價格：NT$%d\n庫存：%d\n狀態：%s",
                 product.getName(), product.getDescription(), product.getPrice(),
                 product.getStock(), product.getStatus());
         } catch (Exception e) {
@@ -54,14 +54,14 @@ public class OrderTools {
         try {
             OrderDTO order = orderService.getOrderById(orderId);
             StringBuilder result = new StringBuilder();
-            result.append(String.format("訂單詳情：\n訂單編號：%d\n顧客：%s\n總金額：NT$%.2f\n狀態：%s\n建立時間：%s\n",
+            result.append(String.format("訂單詳情：\n訂單編號：%d\n顧客：%s\n總金額：NT$%d\n狀態：%s\n建立時間：%s\n",
                 order.getId(), order.getCustomerName(), order.getTotalAmount(),
                 order.getStatus(), order.getCreatedAt()));
 
             if (order.getItems() != null && !order.getItems().isEmpty()) {
                 result.append("\n訂單商品：\n");
                 order.getItems().forEach(item ->
-                    result.append(String.format("- %s x%d，單價：NT$%.2f\n",
+                    result.append(String.format("- %s x%d，單價：NT$%d\n",
                         item.getProductName(), item.getQuantity(), item.getPrice())));
             }
 

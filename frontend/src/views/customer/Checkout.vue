@@ -95,7 +95,7 @@
             :loading="isCreatingOrder"
             :disabled="hasStockIssues"
             @click="confirmOrder"
-          >確認訂單</el-button>
+          >確認結帳</el-button>
         </div>
       </div>
     </div>
@@ -129,7 +129,7 @@ const hasStockIssues = computed(() => {
 })
 
 onMounted(async () => {
-  await cartStore.loadCart()
+  await cartStore.loadCart({ tracking: true, context: 'checkout' }) // Track entering checkout page
 
   // 如果購物車是空的，重導向到商品頁面
   if (items.value.length === 0) {
@@ -146,7 +146,8 @@ onMounted(async () => {
 
 async function loadProductStocks() {
   try {
-    const response = await productsApi.getProducts()
+    // Load products without tracking (for stock validation only)
+    const response = await productsApi.getProducts({ tracking: false })
     console.log('Products API response:', response)
     // axios 攔截器已經自動提取 response.data，所以直接使用 response.content
     const products = response.content || response || []

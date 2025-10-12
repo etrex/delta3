@@ -6,8 +6,6 @@ package com.etrex.oms.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
-import java.math.BigDecimal;
-
 @Data
 public class OrderItemDTO {
     private Long id;
@@ -22,6 +20,6 @@ public class OrderItemDTO {
     private Integer quantity;
 
     @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal price;
+    @Min(value = 1, message = "Price must be greater than 0")
+    private Integer price;
 }

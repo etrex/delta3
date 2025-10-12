@@ -6,7 +6,6 @@ package com.etrex.oms.entity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ class OrderTest {
         order.setId(1L);
         order.setOrderNo("ORD-001");
         order.setCustomer(customer);
-        order.setTotalAmount(new BigDecimal("199.99"));
+        order.setTotalAmount(199);
         order.setStatus(Order.Status.CREATED);
         order.setCreatedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
@@ -39,7 +38,7 @@ class OrderTest {
         assertEquals(1L, order.getId());
         assertEquals("ORD-001", order.getOrderNo());
         assertEquals(customer, order.getCustomer());
-        assertEquals(new BigDecimal("199.99"), order.getTotalAmount());
+        assertEquals(2000, order.getTotalAmount());
         assertEquals(Order.Status.CREATED, order.getStatus());
         assertNotNull(order.getCreatedAt());
         assertNotNull(order.getUpdatedAt());
@@ -63,7 +62,7 @@ class OrderTest {
         List<Payment> payments = new ArrayList<>();
         Payment payment = new Payment();
         payment.setId(1L);
-        payment.setAmount(new BigDecimal("199.99"));
+        payment.setAmount(199);
         payments.add(payment);
 
         order.setPayments(payments);

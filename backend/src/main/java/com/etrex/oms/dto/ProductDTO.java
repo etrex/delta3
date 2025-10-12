@@ -6,7 +6,6 @@ package com.etrex.oms.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,9 +20,8 @@ public class ProductDTO {
     private String description;
 
     @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.0", inclusive = false)
-    @Digits(integer = 10, fraction = 2)
-    private BigDecimal price;
+    @Min(value = 1, message = "Price must be greater than 0")
+    private Integer price;
 
     @NotNull(message = "Stock is required")
     @Min(0)

@@ -16,10 +16,10 @@ export const useCartStore = defineStore('cart', () => {
   })
   const totalAmount = computed(() => cart.value?.totalAmount || 0)
 
-  async function loadCart() {
+  async function loadCart(options?: { tracking?: boolean; context?: 'sidebar' | 'checkout' }) {
     try {
       loading.value = true
-      cart.value = await cartApi.getCart()
+      cart.value = await cartApi.getCart(options)
     } catch (error) {
       console.error('Failed to load cart:', error)
       cart.value = null
@@ -49,7 +49,7 @@ export const useCartStore = defineStore('cart', () => {
   async function removeCartItem(itemId: number) {
     try {
       await cartApi.removeCartItem(itemId)
-      await loadCart() // Reload cart after removal
+      await loadCart({ tracking: false }) // Reload cart after removal (no tracking)
     } catch (error) {
       console.error('Failed to remove cart item:', error)
       throw error
