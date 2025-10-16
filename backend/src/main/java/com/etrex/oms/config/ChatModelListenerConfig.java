@@ -41,9 +41,24 @@ public class ChatModelListenerConfig {
                 log.info("╔════════════════════════════════════════════════════════════════");
                 log.info("║ 🟢 LLM RESPONSE");
                 log.info("╠════════════════════════════════════════════════════════════════");
-                log.info("║ AI Response:");
-                log.info("║ {}", response.aiMessage().text());
-                log.info("╠════════════════════════════════════════════════════════════════");
+
+                // Check for tool calls
+                if (response.aiMessage().hasToolExecutionRequests()) {
+                    log.info("║ 🔧 TOOL CALLS:");
+                    response.aiMessage().toolExecutionRequests().forEach(tool -> {
+                        log.info("║   - Tool: {}", tool.name());
+                        log.info("║     Arguments: {}", tool.arguments());
+                    });
+                    log.info("╠════════════════════════════════════════════════════════════════");
+                }
+
+                // Show text response if exists
+                if (response.aiMessage().text() != null && !response.aiMessage().text().isEmpty()) {
+                    log.info("║ AI Response:");
+                    log.info("║ {}", response.aiMessage().text());
+                    log.info("╠════════════════════════════════════════════════════════════════");
+                }
+
                 log.info("║ Token Usage:");
                 if (response.tokenUsage() != null) {
                     log.info("║   Input Tokens: {}", response.tokenUsage().inputTokenCount());
