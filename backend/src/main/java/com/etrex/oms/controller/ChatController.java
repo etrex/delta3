@@ -42,6 +42,8 @@ public class ChatController {
         String sessionId = String.valueOf(user.getId());
         Long userId = user.getId();
 
+        log.debug("Customer chat request from user {}", userId);
+
         try {
             // Get user message
             String userMessage = request.getMessage();
@@ -66,6 +68,7 @@ public class ChatController {
             return ResponseEntity.ok(chatResponse);
 
         } catch (Exception e) {
+            log.error("Customer chat error for user {}", userId, e);
             return handleChatError(e, sessionId, userId);
         }
     }

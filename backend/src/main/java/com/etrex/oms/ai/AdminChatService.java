@@ -4,55 +4,27 @@
 package com.etrex.oms.ai;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
-import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.time.Duration;
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminChatService {
+    private final ChatLanguageModel chatLanguageModel;
     private final OrderTools orderTools;
+    private final RagSearchTool ragSearchTool;
 
-    @Value("${langchain4j.ollama.base-url}")
-    private String ollamaBaseUrl;
-
-    @Value("${langchain4j.ollama.model-name}")
-    private String modelName;
-
-    @Value("${langchain4j.ollama.timeout}")
-    private Duration timeout;
-
-    private ChatLanguageModel chatModel;
     private AdminAssistant assistant;
-
-    private ChatLanguageModel getChatModel() {
-        if (chatModel == null) {
-            // Note: ChatModelListener support in Ollama 0.35.0 may cause issues
-            // Temporarily disabled until stable
-            chatModel = OllamaChatModel.builder()
-                    .baseUrl(ollamaBaseUrl)
-                    .modelName(modelName)
-                    .timeout(timeout)
-                    .build();
-        }
-        return chatModel;
-    }
 
     public AdminAssistant getAssistant() {
         if (assistant == null) {
+            log.debug("Creating new AdminAssistant");
             assistant = AiServices.builder(AdminAssistant.class)
-                    .chatLanguageModel(getChatModel())
-                    .tools(orderTools)
+                    .chatLanguageModel(chatLanguageModel)
+                    .tools(orderTools, ragSearchTool)
                     .systemMessageProvider(chatMemoryId ->
                         "你是一個專業的訂單管理系統智能客服助手。請用繁體中文回應。" +
                         "使用者是管理員，可以協助處理所有商品和訂單管理相關問題，包括出貨、庫存管理等進階功能。\n\n" +

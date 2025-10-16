@@ -49,7 +49,7 @@ fi
 # Start backend
 echo "🖥️  Starting backend server..."
 cd backend
-mvn spring-boot:run > backend.log 2>&1 &
+mvn spring-boot:run &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -81,8 +81,12 @@ echo "   🗄️  Database:    http://localhost:8080/api/h2-console"
 echo "   🤖 AI Service:   http://localhost:11434"
 echo ""
 echo "📊 Debug Logs:"
-echo "   Backend:       backend/backend.log"
+echo "   Backend:       backend/logs/application.log"
 echo "   Ollama:        ollama.log (KV cache stats: grep 'used=' ollama.log)"
+echo ""
+echo "💡 Tips:"
+echo "   View backend logs: tail -f backend/logs/application.log"
+echo "   View LLM traces:   tail -f backend/logs/application.log | grep TRACE"
 echo ""
 echo "🔐 Test Accounts:"
 echo "   👤 Admin:      admin / password"

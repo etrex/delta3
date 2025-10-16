@@ -54,15 +54,27 @@ jwt:
 
 langchain4j:
   ollama:
-    base-url: http://localhost:11434
-    model-name: qwen2.5:14b
-    timeout: 60s
+    chat-model:
+      base-url: http://localhost:11434
+      model-name: qwen2.5:14b
+      timeout: PT60S
+      log-requests: true
+      log-responses: true
+
+embedding:
+  cache-path: ./data/embeddings.cache
 
 # Logging configuration
 logging:
   level:
-    dev.langchain4j: DEBUG
+    dev.langchain4j: DEBUG  # LLM request/response logging
+    dev.langchain4j.model.ollama: DEBUG  # Ollama communication logging
     com.etrex.oms.ai: DEBUG
+  file:
+    name: ./logs/application.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 cors:
   allowed-origins: http://localhost:5173
