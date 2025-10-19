@@ -58,7 +58,12 @@
       <el-col :span="10">
         <el-card v-if="currentSession" class="chat-card">
           <template #header>
-            <h3>對話歷史 - 用戶 #{{ currentSession.userId }}</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h3>對話歷史 - 用戶 #{{ currentSession.userId }}</h3>
+              <el-button size="small" @click="aiGeneratingStatus = !aiGeneratingStatus">
+                測試 AI 生成狀態 ({{ aiGeneratingStatus ? 'ON' : 'OFF' }})
+              </el-button>
+            </div>
           </template>
 
           <div class="chat-container">
@@ -467,6 +472,7 @@ watch(currentSession, async (newSession, oldSession) => {
   // Subscribe to new session updates
   if (newSession) {
     try {
+      console.log(`[ChatManagement] Subscribing to session updates for session: ${newSession.sessionId}`)
       currentSubscription = await subscribeToSessionUpdates(newSession.sessionId, async (message: WSMessage) => {
         console.log('Received session update:', message)
         console.log('Message type:', message.type)
