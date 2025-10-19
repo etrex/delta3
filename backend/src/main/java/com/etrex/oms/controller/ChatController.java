@@ -81,7 +81,13 @@ public class ChatController {
             chatNotificationService.notifySessionUpdate(
                     sessionId, "user_message", userMessage, userMsgHistory.getId());
 
-            // 5.5. Notify admins that AI is generating response
+            // 5.5. Create initial AI response record with GENERATING status
+            ChatAiResponse aiResponseRecord = chatAiResponseService.createInitialResponse(
+                    sessionId,
+                    userMsgHistory.getId()
+            );
+
+            // 5.6. Notify admins that AI is generating response
             chatNotificationService.notifySessionUpdate(
                     sessionId, "ai_generating", "AI 正在生成回覆中...", null);
 
@@ -112,21 +118,20 @@ public class ChatController {
 
             log.info("AI response confidence: {}", confidence);
 
-            // 12. Save AI response record
-            AiResponseStatus status;
+            // 12. Determine final status and update AI response record
+            AiResponseStatus finalStatus;
             if (confidence >= 0.8) {
-                status = AiResponseStatus.AUTO_SENT;
+                finalStatus = AiResponseStatus.AUTO_SENT;
             } else {
-                status = AiResponseStatus.PENDING;
+                finalStatus = AiResponseStatus.PENDING;
             }
 
-            ChatAiResponse aiResponseRecord = chatAiResponseService.saveAiResponse(
-                    sessionId,
-                    userMsgHistory.getId(),
+            chatAiResponseService.updateGeneratedResponse(
+                    aiResponseRecord.getId(),
                     aiResponse,
                     confidence,
                     toolCallsJson,
-                    status
+                    finalStatus
             );
 
             // 13. Confidence-based routing

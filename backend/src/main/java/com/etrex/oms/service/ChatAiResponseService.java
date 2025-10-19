@@ -34,7 +34,56 @@ public class ChatAiResponseService {
     private final UserRepository userRepository;
 
     /**
-     * Save AI response record
+     * Create initial AI response record with GENERATING status
+     */
+    @Transactional
+    public ChatAiResponse createInitialResponse(String sessionId, Long userMessageId) {
+        ChatHistory userMessage = chatHistoryRepository.findById(userMessageId)
+                .orElseThrow(() -> new IllegalArgumentException("User message not found: " + userMessageId));
+
+        ChatAiResponse aiResponse = ChatAiResponse.builder()
+                .sessionId(sessionId)
+                .userMessage(userMessage)
+                .suggestedResponse("") // Will be filled after generation
+                .confidenceScore(BigDecimal.ZERO) // Will be filled after evaluation
+                .toolCallsJson(null)
+                .status(AiResponseStatus.GENERATING)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ChatAiResponse saved = chatAiResponseRepository.save(aiResponse);
+        log.info("Created initial AI response: id={}, sessionId={}, status=GENERATING",
+                saved.getId(), sessionId);
+
+        return saved;
+    }
+
+    /**
+     * Update AI response after generation completes
+     */
+    @Transactional
+    public void updateGeneratedResponse(
+            Long aiResponseId,
+            String suggestedResponse,
+            Double confidenceScore,
+            String toolCallsJson,
+            AiResponseStatus finalStatus
+    ) {
+        ChatAiResponse aiResponse = chatAiResponseRepository.findById(aiResponseId)
+                .orElseThrow(() -> new IllegalArgumentException("AI response not found: " + aiResponseId));
+
+        aiResponse.setSuggestedResponse(suggestedResponse);
+        aiResponse.setConfidenceScore(BigDecimal.valueOf(confidenceScore));
+        aiResponse.setToolCallsJson(toolCallsJson);
+        aiResponse.setStatus(finalStatus);
+
+        chatAiResponseRepository.save(aiResponse);
+        log.info("Updated AI response: id={}, confidence={}, status={}",
+                aiResponseId, confidenceScore, finalStatus);
+    }
+
+    /**
+     * Save AI response record (legacy method, kept for compatibility)
      */
     @Transactional
     public ChatAiResponse saveAiResponse(
@@ -219,5 +268,14 @@ public class ChatAiResponseService {
      */
     public long countPendingSuggestions() {
         return chatAiResponseRepository.countPendingSuggestions();
+    }
+
+    /**
+     * Check if AI is currently generating response for a session
+     */
+    public boolean isGenerating(String sessionId) {
+        List<ChatAiResponse> generatingResponses = chatAiResponseRepository
+                .findBySessionIdAndStatus(sessionId, AiResponseStatus.GENERATING);
+        return !generatingResponses.isEmpty();
     }
 }

@@ -329,4 +329,15 @@ public class AdminChatController {
 
         return ResponseEntity.ok(Map.of("status", "success", "messageId", message.getId().toString()));
     }
+
+    /**
+     * Check if AI is currently generating response for a session
+     * GET /api/admin/chat/sessions/{sessionId}/status
+     */
+    @GetMapping("/sessions/{sessionId}/status")
+    public ResponseEntity<Map<String, Boolean>> getSessionStatus(@PathVariable String sessionId) {
+        boolean isGenerating = chatAiResponseService.isGenerating(sessionId);
+        log.debug("Session {} generating status: {}", sessionId, isGenerating);
+        return ResponseEntity.ok(Map.of("isGenerating", isGenerating));
+    }
 }

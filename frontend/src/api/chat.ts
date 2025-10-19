@@ -138,5 +138,10 @@ export default {
   // Get order by ID
   getOrder(orderId: number) {
     return axios.get(`/orders/${orderId}`)
+  },
+
+  // Admin API - Get session generation status
+  getSessionStatus(sessionId: string): Promise<{ isGenerating: boolean }> {
+    return axios.get(`/admin/chat/sessions/${sessionId}/status`)
   }
 }

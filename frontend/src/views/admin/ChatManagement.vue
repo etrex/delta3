@@ -539,7 +539,17 @@ async function selectSession(session: SessionDto) {
 
 async function loadChatHistory(sessionId: string) {
   try {
-    chatHistory.value = await chatApi.getSessionHistory(sessionId)
+    // Load chat history and generation status in parallel
+    const [history, statusResponse] = await Promise.all([
+      chatApi.getSessionHistory(sessionId),
+      chatApi.getSessionStatus(sessionId)
+    ])
+
+    chatHistory.value = history
+
+    // Set AI generating status based on database state
+    aiGeneratingStatus.value = statusResponse.isGenerating
+    console.log(`[loadChatHistory] Session ${sessionId} isGenerating:`, statusResponse.isGenerating)
 
     // Load initial context from chat history (find most recent user action with product/order)
     loadInitialContextFromHistory()

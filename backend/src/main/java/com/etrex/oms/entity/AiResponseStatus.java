@@ -9,6 +9,11 @@ package com.etrex.oms.entity;
  */
 public enum AiResponseStatus {
     /**
+     * AI is currently generating the response
+     */
+    GENERATING,
+
+    /**
      * Auto-sent to customer (confidence >= 80%)
      */
     AUTO_SENT,
