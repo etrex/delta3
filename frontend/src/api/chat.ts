@@ -86,36 +86,36 @@ export default {
 
   // Admin API - Get all chat sessions
   getSessions(): Promise<SessionDto[]> {
-    return axios.get('/admin/chat/sessions').then(res => res.data)
+    return axios.get('/admin/chat/sessions')
   },
 
   // Admin API - Get session history
   getSessionHistory(sessionId: string): Promise<ChatHistory[]> {
-    return axios.get(`/admin/chat/sessions/${sessionId}/history`).then(res => res.data)
+    return axios.get(`/admin/chat/sessions/${sessionId}/history`)
   },
 
   // Admin API - Get pending AI suggestions
   getPendingSuggestions(): Promise<AiSuggestionDto[]> {
-    return axios.get('/admin/chat/suggestions').then(res => res.data)
+    return axios.get('/admin/chat/suggestions')
   },
 
   // Admin API - Approve AI suggestion
   approveSuggestion(request: AdminSendRequest) {
-    return axios.post('/admin/chat/approve', request).then(res => res.data)
+    return axios.post('/admin/chat/approve', request)
   },
 
   // Admin API - Modify and send AI suggestion
   modifySuggestion(request: AdminSendRequest) {
-    return axios.post('/admin/chat/modify', request).then(res => res.data)
+    return axios.post('/admin/chat/modify', request)
   },
 
   // Admin API - Reject AI suggestion and send manual message
   rejectSuggestion(request: AdminSendRequest) {
-    return axios.post('/admin/chat/reject', request).then(res => res.data)
+    return axios.post('/admin/chat/reject', request)
   },
 
   // Admin API - Provide feedback on AI response
   provideFeedback(request: FeedbackRequest) {
-    return axios.post('/admin/chat/feedback', request).then(res => res.data)
+    return axios.post('/admin/chat/feedback', request)
   }
 }
