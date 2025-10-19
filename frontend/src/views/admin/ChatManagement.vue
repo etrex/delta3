@@ -93,6 +93,55 @@
                 <div class="message-content generating-text">AI 正在生成回覆中...</div>
               </div>
 
+              <!-- AI Suggestions (displayed as messages in chat flow) -->
+              <div
+                v-for="suggestion in currentSuggestions"
+                :key="suggestion.aiResponseId"
+                class="chat-message ai-suggestion"
+              >
+                <div class="message-header">
+                  <el-tag type="warning" size="small">
+                    🤖 AI 建議 (置信度: {{ (suggestion.confidence * 100).toFixed(0) }}%)
+                  </el-tag>
+                  <span class="message-time">{{ formatDateTime(suggestion.createdAt) }}</span>
+                </div>
+
+                <div class="message-content suggestion-content">{{ suggestion.suggestedText }}</div>
+
+                <div v-if="suggestion.toolCalls && suggestion.toolCalls.length > 0" class="tool-calls-inline">
+                  <el-divider content-position="left">
+                    <span style="font-size: 12px; color: #909399;">工具調用</span>
+                  </el-divider>
+                  <div v-for="(tool, idx) in suggestion.toolCalls" :key="idx" class="tool-call-item">
+                    <strong>{{ tool.toolName }}</strong>: {{ tool.result }}
+                  </div>
+                </div>
+
+                <div class="suggestion-actions">
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="approveSuggestion(suggestion)"
+                  >
+                    ✓ 批准發送
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="showModifyDialog(suggestion)"
+                  >
+                    ✏️ 修改後發送
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="showRejectDialog(suggestion)"
+                  >
+                    ✗ 拒絕並手動回覆
+                  </el-button>
+                </div>
+              </div>
+
               <el-empty v-if="chatHistory.length === 0" description="暫無對話記錄" />
             </div>
 
@@ -122,70 +171,15 @@
         </el-card>
       </el-col>
 
-      <!-- Right: Context & Suggestions -->
+      <!-- Right: User Context -->
       <el-col :span="6">
         <el-card>
           <template #header>
-            <el-tabs v-model="activeTab" class="context-tabs">
-              <el-tab-pane label="AI 建議" name="suggestions"></el-tab-pane>
-              <el-tab-pane label="用戶上下文" name="context"></el-tab-pane>
-            </el-tabs>
+            <h3>用戶上下文</h3>
           </template>
 
-          <!-- AI Suggestions Tab -->
-          <div v-show="activeTab === 'suggestions'" class="suggestions-list">
-            <div
-              v-for="suggestion in currentSuggestions"
-              :key="suggestion.aiResponseId"
-              class="suggestion-item"
-            >
-              <div class="suggestion-header">
-                <el-tag type="warning" size="small">
-                  置信度: {{ (suggestion.confidence * 100).toFixed(0) }}%
-                </el-tag>
-                <span class="suggestion-time">{{ formatDateTime(suggestion.createdAt) }}</span>
-              </div>
-
-              <div class="suggestion-text">{{ suggestion.suggestedText }}</div>
-
-              <div v-if="suggestion.toolCalls && suggestion.toolCalls.length > 0" class="tool-calls">
-                <el-divider>工具調用</el-divider>
-                <div v-for="(tool, idx) in suggestion.toolCalls" :key="idx" class="tool-call">
-                  <strong>{{ tool.toolName }}</strong>
-                  <div class="tool-result">{{ tool.result }}</div>
-                </div>
-              </div>
-
-              <div class="suggestion-actions">
-                <el-button
-                  type="success"
-                  size="small"
-                  @click="approveSuggestion(suggestion)"
-                >
-                  批准發送
-                </el-button>
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click="showModifyDialog(suggestion)"
-                >
-                  修改
-                </el-button>
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="showRejectDialog(suggestion)"
-                >
-                  拒絕
-                </el-button>
-              </div>
-            </div>
-
-            <el-empty v-if="currentSuggestions.length === 0" description="暫無 AI 建議" />
-          </div>
-
-          <!-- User Context Tab -->
-          <div v-show="activeTab === 'context'" class="context-panel">
+          <!-- User Context Panel -->
+          <div class="context-panel">
             <!-- General Page Context -->
             <div v-if="userContext && !userContext.productId && !userContext.orderId" class="general-context">
               <div class="context-header">
@@ -369,8 +363,7 @@ let currentSubscription: any = null
 // AI generating status
 const aiGeneratingStatus = ref(false)
 
-// Tab and Context states
-const activeTab = ref('suggestions')
+// Context states
 const userContext = ref<{
   currentPage?: string
   productId?: number
@@ -711,7 +704,7 @@ function loadInitialContextFromHistory() {
 }
 
 // Parse user action to update context (only shows current viewing, not history)
-function parseUserAction(actionTarget: string, autoSwitchTab = true) {
+function parseUserAction(actionTarget: string) {
   // Extract product ID from action like "查看商品詳情 (商品 ID: 123)"
   const productMatch = actionTarget.match(/商品\s*ID[:：]\s*(\d+)/)
   if (productMatch) {
@@ -725,9 +718,6 @@ function parseUserAction(actionTarget: string, autoSwitchTab = true) {
     productInfo.value = null
     orderInfo.value = null
     loadProductInfo(productId)
-    if (autoSwitchTab) {
-      activeTab.value = 'context'
-    }
     return
   }
 
@@ -744,9 +734,6 @@ function parseUserAction(actionTarget: string, autoSwitchTab = true) {
     productInfo.value = null
     orderInfo.value = null
     loadOrderInfo(orderId)
-    if (autoSwitchTab) {
-      activeTab.value = 'context'
-    }
     return
   }
 
@@ -975,6 +962,43 @@ h3 {
   0% { background-position: 0% 0%; }
   50% { background-position: 100% 0%; }
   100% { background-position: 0% 0%; }
+}
+
+/* AI Suggestion in Chat */
+.chat-message.ai-suggestion {
+  background: linear-gradient(135deg, #fffbf0 0%, #fff8e1 100%);
+  border: 2px solid #ffd54f;
+  border-left: 5px solid #f0ad4e;
+  padding: 16px;
+}
+
+.suggestion-content {
+  font-weight: 500;
+  color: #333;
+  line-height: 1.6;
+}
+
+.tool-calls-inline {
+  margin-top: 12px;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+}
+
+.tool-call-item {
+  font-size: 12px;
+  color: #666;
+  margin: 4px 0;
+  padding: 4px 8px;
+  background-color: rgba(64, 158, 255, 0.05);
+  border-radius: 3px;
+}
+
+.suggestion-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .empty-state {
