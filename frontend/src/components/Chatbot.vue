@@ -92,6 +92,7 @@ import chatApi from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useChatTracking } from '@/composables/useChatTracking'
+import { useChatWebSocket, type ChatMessage as WSMessage } from '@/composables/useChatWebSocket'
 
 interface Message {
   content: string
@@ -103,6 +104,7 @@ interface Message {
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const router = useRouter()
+const { subscribeToUserMessages } = useChatWebSocket()
 const isOpen = ref(false)
 const currentMessage = ref('')
 const messages = ref<Message[]>([])
@@ -216,7 +218,14 @@ const sendMessage = async () => {
 
     console.log('Chat response:', response)
 
-    const botResponse = response.response || response.message || '無回應'
+    const botResponse = response.response || response.message || ''
+
+    // If response is empty, it means the message will be delivered via WebSocket
+    // (e.g., AI auto-reply with high confidence). Skip adding to avoid duplication.
+    if (!botResponse || botResponse.trim() === '') {
+      console.log('Empty response - message will be delivered via WebSocket')
+      return
+    }
 
     // Parse navigation command if present
     const { path, cleanContent } = parseNavigationCommand(botResponse)
@@ -272,11 +281,42 @@ const formatTime = (timestamp: number) => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Auto-scroll when new messages are added
   nextTick(() => {
     scrollToBottom()
   })
+
+  // Connect to WebSocket and subscribe to user messages
+  if (authStore.user?.id) {
+    try {
+      await subscribeToUserMessages(authStore.user.id, (message: WSMessage) => {
+        console.log('Received WebSocket message:', message)
+
+        // Add bot message to chat
+        messages.value.push({
+          content: message.content,
+          type: 'bot',
+          timestamp: Date.now()
+        })
+
+        nextTick(() => {
+          scrollToBottom()
+        })
+
+        // Show notification if chat is closed
+        if (!isOpen.value) {
+          ElMessage({
+            message: '您收到新的客服訊息',
+            type: 'info',
+            duration: 3000
+          })
+        }
+      })
+    } catch (error) {
+      console.error('Failed to subscribe to user messages:', error)
+    }
+  }
 })
 </script>
 

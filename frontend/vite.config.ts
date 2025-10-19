@@ -9,5 +9,9 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'src')
     }
+  },
+  define: {
+    // Fix for sockjs-client: 'global is not defined' in browser
+    global: 'globalThis',
   }
 })

@@ -203,11 +203,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Position, Promotion } from '@element-plus/icons-vue'
 import chatApi, { SessionDto, ChatHistory, AiSuggestionDto } from '@/api/chat'
+import { useChatWebSocket, type ChatMessage as WSMessage } from '@/composables/useChatWebSocket'
 
+const { subscribeToSessionUpdates, subscribeToAdminNewMessages, subscribeToAdminSuggestions, subscribeToAdminUserActions } = useChatWebSocket()
 const sessions = ref<SessionDto[]>([])
 const currentSession = ref<SessionDto | null>(null)
 const chatHistory = ref<ChatHistory[]>([])
@@ -215,6 +217,7 @@ const pendingSuggestions = ref<AiSuggestionDto[]>([])
 const searchQuery = ref('')
 const chatHistoryRef = ref<HTMLElement>()
 const manualMessage = ref('')
+let currentSubscription: any = null
 
 // Dialog states
 const modifyDialogVisible = ref(false)
@@ -244,14 +247,74 @@ const currentSuggestions = computed(() => {
 const pendingSuggestionsCount = computed(() => pendingSuggestions.value.length)
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   loadSessions()
   loadPendingSuggestions()
-  // Auto refresh every 10 seconds
+
+  try {
+    // Subscribe to global admin notifications for new messages from customers
+    await subscribeToAdminNewMessages(async (notification) => {
+      console.log('New message notification:', notification)
+      // Reload sessions list to show the new message
+      await loadSessions()
+    })
+
+    // Subscribe to global admin notifications for new AI suggestions
+    await subscribeToAdminSuggestions(async (suggestion) => {
+      console.log('New AI suggestion:', suggestion)
+      // Reload pending suggestions
+      await loadPendingSuggestions()
+      // Also reload sessions to update the badge
+      await loadSessions()
+    })
+
+    // Subscribe to global admin notifications for user actions
+    await subscribeToAdminUserActions(async (action) => {
+      console.log('User action notification:', action)
+      // Reload chat history if viewing this user's session
+      if (currentSession.value && currentSession.value.sessionId === action.sessionId) {
+        await loadChatHistory(currentSession.value.sessionId)
+      }
+      // Also reload sessions to update last action time
+      await loadSessions()
+    })
+  } catch (error) {
+    console.error('Failed to subscribe to admin notifications:', error)
+  }
+
+  // Auto refresh every 30 seconds (as fallback, less frequent since we have WebSocket)
   setInterval(() => {
     loadSessions()
     loadPendingSuggestions()
-  }, 10000)
+  }, 30000)
+})
+
+// Watch for session changes to subscribe to session-specific updates
+watch(currentSession, async (newSession, oldSession) => {
+  // Unsubscribe from old session
+  if (currentSubscription) {
+    currentSubscription.unsubscribe()
+    currentSubscription = null
+  }
+
+  // Subscribe to new session updates
+  if (newSession) {
+    try {
+      currentSubscription = await subscribeToSessionUpdates(newSession.sessionId, async (message: WSMessage) => {
+        console.log('Received session update:', message)
+
+        // Reload chat history when there's any update (user message, admin reply, AI auto reply, etc.)
+        if (currentSession.value) {
+          await loadChatHistory(currentSession.value.sessionId)
+        }
+
+        // Also reload sessions list to update last message
+        await loadSessions()
+      })
+    } catch (error) {
+      console.error('Failed to subscribe to session updates:', error)
+    }
+  }
 })
 
 // Methods

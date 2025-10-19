@@ -70,6 +70,9 @@ logging:
     dev.langchain4j: DEBUG  # LLM request/response logging
     dev.langchain4j.model.ollama: DEBUG  # Ollama communication logging
     com.etrex.oms.ai: DEBUG
+    com.etrex.oms.service.ChatNotificationService: DEBUG
+    com.etrex.oms.controller: DEBUG
+    org.springframework.messaging: DEBUG
   file:
     name: ./logs/application.log
   pattern:

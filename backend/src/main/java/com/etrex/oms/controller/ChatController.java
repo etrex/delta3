@@ -77,24 +77,28 @@ public class ChatController {
             chatNotificationService.notifyAdminsNewMessage(
                     sessionId, userId, userName, userMessage, userMsgHistory.getId());
 
-            // 5. Clear and initialize ToolCallCollector for this request
+            // 5. Notify admins monitoring this specific session
+            chatNotificationService.notifySessionUpdate(
+                    sessionId, "user_message", userMessage, userMsgHistory.getId());
+
+            // 6. Clear and initialize ToolCallCollector for this request
             toolCallCollector.clear();
 
-            // 6. Get conversation history (manual history management)
+            // 7. Get conversation history (manual history management)
             List<ChatHistory> historyRecords = chatHistoryService.getRecentHistory(sessionId, 20);
             List<ChatMessage> conversationHistory = chatHistoryService.getHistoryAsChatMessages(sessionId, 20);
 
-            // 7. Build messages for AI (history + new user message with context)
+            // 8. Build messages for AI (history + new user message with context)
             List<ChatMessage> messages = new ArrayList<>(conversationHistory);
             messages.add(new UserMessage(messageWithContext));
 
-            // 8. Get AI response using manual chat (NOT using langchain4j ChatMemory)
+            // 9. Get AI response using manual chat (NOT using langchain4j ChatMemory)
             String aiResponse = customerChatService.getChatModel().generate(messages).content().text();
 
-            // 9. Collect tool calls from ThreadLocal
+            // 10. Collect tool calls from ThreadLocal
             String toolCallsJson = toolCallCollector.toJson();
 
-            // 10. Evaluate confidence
+            // 11. Evaluate confidence
             double confidence = confidenceEvaluator.evaluateConfidence(
                     userMessage,
                     aiResponse,
@@ -104,7 +108,7 @@ public class ChatController {
 
             log.info("AI response confidence: {}", confidence);
 
-            // 11. Save AI response record
+            // 12. Save AI response record
             AiResponseStatus status;
             if (confidence >= 0.8) {
                 status = AiResponseStatus.AUTO_SENT;
@@ -121,7 +125,7 @@ public class ChatController {
                     status
             );
 
-            // 12. Confidence-based routing
+            // 13. Confidence-based routing
             ChatResponse chatResponse = new ChatResponse();
             chatResponse.setSessionId(sessionId);
 
@@ -143,7 +147,8 @@ public class ChatController {
                 chatNotificationService.notifySessionUpdateWithAiInfo(
                         sessionId, aiResponse, assistantMsg.getId(), confidence, aiResponseRecord.getId());
 
-                chatResponse.setResponse(aiResponse);
+                // Return empty response (message will be delivered via WebSocket to avoid duplication)
+                chatResponse.setResponse("");
 
             } else if (confidence >= 0.4) {
                 // 📋 SUGGEST TO ADMIN (40% <= confidence < 80%)
@@ -181,7 +186,7 @@ public class ChatController {
             log.error("Customer chat error for user {}", userId, e);
             return handleChatError(e, sessionId, userId);
         } finally {
-            // 13. Clean up ToolCallCollector
+            // 14. Clean up ToolCallCollector
             toolCallCollector.remove();
         }
     }

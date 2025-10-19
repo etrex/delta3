@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatHistoryService {
     private final ChatHistoryRepository chatHistoryRepository;
+    private final ChatNotificationService chatNotificationService;
 
     /**
      * Save a message to chat history
@@ -138,7 +139,14 @@ public class ChatHistoryService {
             if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof User) {
                 User user = (User) auth.getPrincipal();
                 String sessionId = String.valueOf(user.getId());
+
+                // Save action to database
                 saveAction(sessionId, user.getId(), "api_call", description);
+
+                // Notify admins via WebSocket
+                chatNotificationService.notifyAdminsUserAction(
+                        sessionId, user.getId(), user.getUsername(), "api_call", description);
+
                 log.debug("Tracked: {} for user {}", description, user.getUsername());
             }
         } catch (Exception e) {
@@ -157,7 +165,14 @@ public class ChatHistoryService {
     public void track(User user, String description) {
         try {
             String sessionId = String.valueOf(user.getId());
+
+            // Save action to database
             saveAction(sessionId, user.getId(), "api_call", description);
+
+            // Notify admins via WebSocket
+            chatNotificationService.notifyAdminsUserAction(
+                    sessionId, user.getId(), user.getUsername(), "api_call", description);
+
             log.debug("Tracked: {} for user {}", description, user.getUsername());
         } catch (Exception e) {
             log.error("Failed to track operation: {}", description, e);
