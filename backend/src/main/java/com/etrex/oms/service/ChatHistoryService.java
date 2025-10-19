@@ -6,6 +6,9 @@ package com.etrex.oms.service;
 import com.etrex.oms.entity.ChatHistory;
 import com.etrex.oms.entity.User;
 import com.etrex.oms.repository.ChatHistoryRepository;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -13,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -159,5 +163,34 @@ public class ChatHistoryService {
             log.error("Failed to track operation: {}", description, e);
             // Don't fail the request if tracking fails
         }
+    }
+
+    /**
+     * Get chat history as ChatMessage list for langchain4j
+     * Converts ChatHistory records to langchain4j ChatMessage format
+     * Does NOT use langchain4j ChatMemory - manual history management
+     *
+     * @param sessionId Session ID
+     * @param limit Maximum number of history records to retrieve
+     * @return List of ChatMessage objects
+     */
+    public List<ChatMessage> getHistoryAsChatMessages(String sessionId, int limit) {
+        List<ChatHistory> history = getRecentHistory(sessionId, limit);
+        List<ChatMessage> messages = new ArrayList<>();
+
+        for (ChatHistory h : history) {
+            if (h.getMessageType().equals(ChatHistory.MessageType.ACTION.name())) {
+                // Actions are treated as user messages (context for AI)
+                messages.add(new UserMessage(h.getContent()));
+            } else if (h.getRole().equals(ChatHistory.Role.USER.name())) {
+                messages.add(new UserMessage(h.getContent()));
+            } else if (h.getRole().equals(ChatHistory.Role.ASSISTANT.name())) {
+                messages.add(new AiMessage(h.getContent()));
+            }
+        }
+
+        log.debug("Converted {} history records to {} ChatMessages for session {}",
+                history.size(), messages.size(), sessionId);
+        return messages;
     }
 }
