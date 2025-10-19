@@ -442,7 +442,7 @@ h3 {
 }
 
 .sessions-list {
-  max-height: 700px;
+  max-height: 550px;
   overflow-y: auto;
 }
 
@@ -488,7 +488,7 @@ h3 {
 }
 
 .chat-card {
-  height: 800px;
+  height: 600px;
   display: flex;
   flex-direction: column;
 }
@@ -496,7 +496,7 @@ h3 {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 720px;
+  height: 520px;
 }
 
 .chat-history {
@@ -505,6 +505,7 @@ h3 {
   padding: 10px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chat-input-area {
@@ -563,14 +564,14 @@ h3 {
 }
 
 .empty-state {
-  height: 800px;
+  height: 600px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .suggestions-list {
-  max-height: 750px;
+  max-height: 550px;
   overflow-y: auto;
 }
 
