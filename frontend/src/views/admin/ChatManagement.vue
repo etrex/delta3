@@ -58,12 +58,7 @@
       <el-col :span="10">
         <el-card v-if="currentSession" class="chat-card">
           <template #header>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <h3>對話歷史 - 用戶 #{{ currentSession.userId }}</h3>
-              <el-button size="small" @click="aiGeneratingStatus = !aiGeneratingStatus">
-                測試 AI 生成狀態 ({{ aiGeneratingStatus ? 'ON' : 'OFF' }})
-              </el-button>
-            </div>
+            <h3>對話歷史 - 用戶 #{{ currentSession.userId }}</h3>
           </template>
 
           <div class="chat-container">
@@ -421,6 +416,14 @@ onMounted(async () => {
     // Subscribe to global admin notifications for new messages from customers
     await subscribeToAdminNewMessages(async (notification) => {
       console.log('New message notification:', notification)
+
+      // If currently viewing this session, show AI generating status immediately
+      if (currentSession.value && currentSession.value.sessionId === notification.sessionId) {
+        console.log('[New Message] Setting aiGeneratingStatus to true')
+        aiGeneratingStatus.value = true
+        await loadChatHistory(currentSession.value.sessionId)
+      }
+
       // Reload sessions list to show the new message
       await loadSessions()
     })
@@ -428,6 +431,13 @@ onMounted(async () => {
     // Subscribe to global admin notifications for new AI suggestions
     await subscribeToAdminSuggestions(async (suggestion) => {
       console.log('New AI suggestion:', suggestion)
+
+      // Clear AI generating status if viewing this session
+      if (currentSession.value && currentSession.value.sessionId === suggestion.sessionId) {
+        console.log('[AI Suggestion] Clearing aiGeneratingStatus')
+        aiGeneratingStatus.value = false
+      }
+
       // Reload pending suggestions
       await loadPendingSuggestions()
       // Also reload sessions to update the badge
