@@ -54,8 +54,14 @@ public class AdminChatController {
                     String sessionId = (String) row[0];
                     Long userId = (Long) row[1];
                     String lastMessage = (String) row[2];
-                    Long lastMessageTime = ((java.time.LocalDateTime) row[3])
-                            .toInstant(ZoneOffset.UTC).toEpochMilli();
+                    // Handle both Timestamp (H2) and LocalDateTime (PostgreSQL)
+                    Long lastMessageTime;
+                    if (row[3] instanceof java.sql.Timestamp) {
+                        lastMessageTime = ((java.sql.Timestamp) row[3]).getTime();
+                    } else {
+                        lastMessageTime = ((java.time.LocalDateTime) row[3])
+                                .toInstant(ZoneOffset.UTC).toEpochMilli();
+                    }
 
                     // Check if has pending AI suggestion
                     List<ChatAiResponse> pendingSuggestions = chatAiResponseService.getBySessionId(sessionId)

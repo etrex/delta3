@@ -45,10 +45,15 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, Long> 
      * Get all sessions with their last message
      * Returns: [sessionId, userId, lastMessage, lastMessageTime]
      */
-    @Query(value = "SELECT DISTINCT ON (session_id) session_id, user_id, content, created_at " +
-                   "FROM chat_history " +
-                   "WHERE message_type = 'MESSAGE' " +
-                   "ORDER BY session_id, created_at DESC",
+    @Query(value = "SELECT ch.session_id, ch.user_id, ch.content, ch.created_at " +
+                   "FROM chat_history ch " +
+                   "INNER JOIN (" +
+                   "  SELECT session_id, MAX(created_at) as max_time " +
+                   "  FROM chat_history " +
+                   "  WHERE message_type = 'MESSAGE' " +
+                   "  GROUP BY session_id" +
+                   ") latest ON ch.session_id = latest.session_id AND ch.created_at = latest.max_time " +
+                   "WHERE ch.message_type = 'MESSAGE'",
                    nativeQuery = true)
     List<Object[]> findAllSessionsWithLastMessage();
 }
