@@ -74,6 +74,10 @@
               <el-icon><Van /></el-icon>
               出貨管理
             </el-button>
+            <el-button type="success" @click="goTo('/admin/chat')">
+              <el-icon><ChatDotRound /></el-icon>
+              客服管理
+            </el-button>
           </div>
         </el-card>
       </el-col>
@@ -140,7 +144,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Document, Goods, Money, Clock, Van } from '@element-plus/icons-vue'
+import { Document, Goods, Money, Clock, Van, ChatDotRound } from '@element-plus/icons-vue'
 import ordersApi from '@/api/orders'
 import productsApi from '@/api/products'
 

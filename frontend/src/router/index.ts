@@ -110,6 +110,12 @@ const router = createRouter({
           name: 'ShippingReports',
           component: () => import('@/views/admin/ShippingReports.vue'),
           meta: { requiresAdmin: true }
+        },
+        {
+          path: 'chat',
+          name: 'ChatManagement',
+          component: () => import('@/views/admin/ChatManagement.vue'),
+          meta: { requiresAdmin: true }
         }
       ]
     }
