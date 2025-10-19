@@ -128,5 +128,15 @@ export default {
   // Admin API - Send direct message to user
   sendDirectMessage(request: AdminDirectMessageRequest) {
     return axios.post('/admin/chat/send', request)
+  },
+
+  // Get product by ID
+  getProduct(productId: number) {
+    return axios.get(`/product/${productId}`)
+  },
+
+  // Get order by ID
+  getOrder(orderId: number) {
+    return axios.get(`/orders/${orderId}`)
   }
 }
