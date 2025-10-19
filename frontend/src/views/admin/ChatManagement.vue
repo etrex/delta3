@@ -82,6 +82,17 @@
                 </div>
               </div>
 
+              <!-- AI Generating Status -->
+              <div v-if="aiGeneratingStatus" class="chat-message assistant ai-generating">
+                <div class="message-header">
+                  <el-tag type="warning" size="small">
+                    <el-icon class="loading-icon"><Loading /></el-icon>
+                    AI 生成中
+                  </el-tag>
+                </div>
+                <div class="message-content generating-text">AI 正在生成回覆中...</div>
+              </div>
+
               <el-empty v-if="chatHistory.length === 0" description="暫無對話記錄" />
             </div>
 
@@ -355,6 +366,9 @@ const chatHistoryRef = ref<HTMLElement>()
 const manualMessage = ref('')
 let currentSubscription: any = null
 
+// AI generating status
+const aiGeneratingStatus = ref(false)
+
 // Tab and Context states
 const activeTab = ref('suggestions')
 const userContext = ref<{
@@ -447,11 +461,22 @@ watch(currentSession, async (newSession, oldSession) => {
     currentSubscription = null
   }
 
+  // Reset AI generating status when switching sessions
+  aiGeneratingStatus.value = false
+
   // Subscribe to new session updates
   if (newSession) {
     try {
       currentSubscription = await subscribeToSessionUpdates(newSession.sessionId, async (message: WSMessage) => {
         console.log('Received session update:', message)
+
+        // Handle AI generating status
+        if (message.type === 'ai_generating') {
+          aiGeneratingStatus.value = true
+        } else {
+          // Clear generating status when any actual message arrives
+          aiGeneratingStatus.value = false
+        }
 
         // Reload chat history when there's any update (user message, admin reply, AI auto reply, etc.)
         if (currentSession.value) {
@@ -889,6 +914,35 @@ h3 {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+/* AI Generating Status */
+.chat-message.ai-generating {
+  background: linear-gradient(90deg, #fff3cd 0%, #ffe8a1 50%, #fff3cd 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  border: 1px dashed #f0ad4e;
+}
+
+.generating-text {
+  color: #856404;
+  font-style: italic;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+  margin-right: 4px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 0%; }
+  100% { background-position: 0% 0%; }
 }
 
 .empty-state {

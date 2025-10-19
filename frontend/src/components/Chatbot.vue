@@ -53,13 +53,6 @@
             </div>
           </div>
         </div>
-
-        <div v-if="isLoading" class="message bot">
-          <div class="message-content">
-            <el-icon class="loading-icon"><Loading /></el-icon>
-            正在思考中...
-          </div>
-        </div>
       </div>
 
       <!-- Input area -->
@@ -86,7 +79,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChatRound, Close, Loading, Operation, Position } from '@element-plus/icons-vue'
+import { ChatRound, Close, Operation, Position } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import chatApi from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
@@ -398,16 +391,6 @@ onMounted(async () => {
 
 .input-area {
   margin-top: 10px;
-}
-
-.loading-icon {
-  animation: spin 1s linear infinite;
-  margin-right: 5px;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 .messages-container::-webkit-scrollbar {

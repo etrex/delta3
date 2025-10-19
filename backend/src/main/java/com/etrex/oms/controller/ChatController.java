@@ -81,6 +81,10 @@ public class ChatController {
             chatNotificationService.notifySessionUpdate(
                     sessionId, "user_message", userMessage, userMsgHistory.getId());
 
+            // 5.5. Notify admins that AI is generating response
+            chatNotificationService.notifySessionUpdate(
+                    sessionId, "ai_generating", "AI 正在生成回覆中...", null);
+
             // 6. Clear and initialize ToolCallCollector for this request
             toolCallCollector.clear();
 
@@ -167,17 +171,15 @@ public class ChatController {
                 // Notify admins of suggestion
                 chatNotificationService.notifyAdminsSuggestion(suggestion);
 
-                // Return pending message to user
-                String pendingMessage = "您的問題已收到，客服人員將儘快為您服務。";
-                chatResponse.setResponse(pendingMessage);
+                // Return empty response (message will be delivered via WebSocket when admin approves)
+                chatResponse.setResponse("");
 
             } else {
                 // ⏳ WAIT FOR MANUAL HANDLING (confidence < 40%)
                 log.info("AI confidence too low, waiting for manual handling (confidence: {})", confidence);
 
-                // Return waiting message to user
-                String waitingMessage = "您的問題已收到，客服人員將儘快為您服務。";
-                chatResponse.setResponse(waitingMessage);
+                // Return empty response (admin will handle manually)
+                chatResponse.setResponse("");
             }
 
             return ResponseEntity.ok(chatResponse);
