@@ -64,8 +64,10 @@ public class ChatNotificationService {
                 .timestamp(System.currentTimeMillis())
                 .build();
 
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId + "/updates", notification);
-        log.debug("Notified session update: sessionId={}, type={}", sessionId, type);
+        String destination = "/topic/session/" + sessionId + "/updates";
+        messagingTemplate.convertAndSend(destination, notification);
+        log.info("Notified session update: sessionId={}, type={}, destination={}, notification={}",
+                sessionId, type, destination, notification);
     }
 
     /**

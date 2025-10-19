@@ -469,12 +469,18 @@ watch(currentSession, async (newSession, oldSession) => {
     try {
       currentSubscription = await subscribeToSessionUpdates(newSession.sessionId, async (message: WSMessage) => {
         console.log('Received session update:', message)
+        console.log('Message type:', message.type)
+        console.log('Current aiGeneratingStatus:', aiGeneratingStatus.value)
 
         // Handle AI generating status
         if (message.type === 'ai_generating') {
+          console.log('Setting aiGeneratingStatus to true')
           aiGeneratingStatus.value = true
+          // Don't reload chat history for generating status, just show the indicator
+          return
         } else {
           // Clear generating status when any actual message arrives
+          console.log('Clearing aiGeneratingStatus (message type:', message.type, ')')
           aiGeneratingStatus.value = false
         }
 
