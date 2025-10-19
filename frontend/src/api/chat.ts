@@ -62,6 +62,12 @@ export interface FeedbackRequest {
   reason?: string
 }
 
+export interface AdminDirectMessageRequest {
+  sessionId: string
+  userId: number
+  text: string
+}
+
 export default {
   // Customer chat with page context
   sendMessage(message: string, pageContext?: PageContext) {
@@ -117,5 +123,10 @@ export default {
   // Admin API - Provide feedback on AI response
   provideFeedback(request: FeedbackRequest) {
     return axios.post('/admin/chat/feedback', request)
+  },
+
+  // Admin API - Send direct message to user
+  sendDirectMessage(request: AdminDirectMessageRequest) {
+    return axios.post('/admin/chat/send', request)
   }
 }

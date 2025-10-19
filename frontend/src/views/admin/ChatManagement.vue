@@ -61,27 +61,48 @@
             <h3>對話歷史 - 用戶 #{{ currentSession.userId }}</h3>
           </template>
 
-          <div class="chat-history" ref="chatHistoryRef">
-            <div
-              v-for="msg in chatHistory"
-              :key="msg.id"
-              class="chat-message"
-              :class="msg.role.toLowerCase()"
-            >
-              <div class="message-header">
-                <el-tag :type="msg.role === 'USER' ? 'info' : 'success'" size="small">
-                  {{ msg.role === 'USER' ? '客戶' : 'AI 助手' }}
-                </el-tag>
-                <span class="message-time">{{ formatDateTime(msg.createdAt) }}</span>
+          <div class="chat-container">
+            <div class="chat-history" ref="chatHistoryRef">
+              <div
+                v-for="msg in chatHistory"
+                :key="msg.id"
+                class="chat-message"
+                :class="msg.role.toLowerCase()"
+              >
+                <div class="message-header">
+                  <el-tag :type="msg.role === 'USER' ? 'info' : 'success'" size="small">
+                    {{ msg.role === 'USER' ? '客戶' : 'AI 助手' }}
+                  </el-tag>
+                  <span class="message-time">{{ formatDateTime(msg.createdAt) }}</span>
+                </div>
+                <div class="message-content">{{ msg.content }}</div>
+                <div v-if="msg.actionType" class="message-action">
+                  <el-icon><Position /></el-icon>
+                  {{ msg.actionType }}: {{ msg.actionTarget }}
+                </div>
               </div>
-              <div class="message-content">{{ msg.content }}</div>
-              <div v-if="msg.actionType" class="message-action">
-                <el-icon><Position /></el-icon>
-                {{ msg.actionType }}: {{ msg.actionTarget }}
-              </div>
+
+              <el-empty v-if="chatHistory.length === 0" description="暫無對話記錄" />
             </div>
 
-            <el-empty v-if="chatHistory.length === 0" description="暫無對話記錄" />
+            <div class="chat-input-area">
+              <el-input
+                v-model="manualMessage"
+                type="textarea"
+                :rows="3"
+                placeholder="輸入訊息直接發送給客戶..."
+                @keydown.ctrl.enter="sendManualMessage"
+              />
+              <el-button
+                type="primary"
+                :disabled="!manualMessage.trim()"
+                @click="sendManualMessage"
+                class="send-button"
+              >
+                <el-icon><Promotion /></el-icon>
+                發送 (Ctrl+Enter)
+              </el-button>
+            </div>
           </div>
         </el-card>
 
@@ -184,7 +205,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, Position } from '@element-plus/icons-vue'
+import { Search, Refresh, Position, Promotion } from '@element-plus/icons-vue'
 import chatApi, { SessionDto, ChatHistory, AiSuggestionDto } from '@/api/chat'
 
 const sessions = ref<SessionDto[]>([])
@@ -193,6 +214,7 @@ const chatHistory = ref<ChatHistory[]>([])
 const pendingSuggestions = ref<AiSuggestionDto[]>([])
 const searchQuery = ref('')
 const chatHistoryRef = ref<HTMLElement>()
+const manualMessage = ref('')
 
 // Dialog states
 const modifyDialogVisible = ref(false)
@@ -369,6 +391,28 @@ function formatDateTime(dateStr: string): string {
     minute: '2-digit'
   })
 }
+
+async function sendManualMessage() {
+  if (!currentSession.value || !manualMessage.value.trim()) return
+
+  try {
+    await chatApi.sendDirectMessage({
+      sessionId: currentSession.value.sessionId,
+      userId: currentSession.value.userId,
+      text: manualMessage.value
+    })
+
+    ElMessage.success('訊息已發送')
+    manualMessage.value = ''
+
+    // Reload chat history and scroll to bottom
+    await loadChatHistory(currentSession.value.sessionId)
+    await loadSessions() // Refresh session list
+  } catch (error) {
+    console.error('Failed to send message:', error)
+    ElMessage.error('發送訊息失敗')
+  }
+}
 </script>
 
 <style scoped>
@@ -449,11 +493,29 @@ h3 {
   flex-direction: column;
 }
 
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 720px;
+}
+
 .chat-history {
   flex: 1;
   overflow-y: auto;
   padding: 10px;
-  max-height: 700px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-input-area {
+  border-top: 1px solid #eee;
+  padding: 15px;
+  background-color: #f9f9f9;
+}
+
+.send-button {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .chat-message {

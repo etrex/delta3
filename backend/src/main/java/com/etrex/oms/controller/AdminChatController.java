@@ -3,6 +3,7 @@
  */
 package com.etrex.oms.controller;
 
+import com.etrex.oms.dto.AdminDirectMessageRequest;
 import com.etrex.oms.dto.AdminSendRequest;
 import com.etrex.oms.dto.AiSuggestionDto;
 import com.etrex.oms.dto.FeedbackRequest;
@@ -286,5 +287,46 @@ public class AdminChatController {
                 admin.getUsername(), request.getFeedbackType(), request.getAiResponseId());
 
         return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    /**
+     * Send direct message to user (without AI suggestion)
+     * POST /api/admin/chat/send
+     */
+    @PostMapping("/send")
+    public ResponseEntity<Map<String, String>> sendDirectMessage(
+            @RequestBody AdminDirectMessageRequest request,
+            Authentication authentication) {
+
+        User admin = (User) authentication.getPrincipal();
+
+        // Save admin message to chat history
+        ChatHistory message = chatHistoryService.saveMessage(
+                request.getSessionId(),
+                request.getUserId(),
+                ChatHistory.Role.ASSISTANT.name(),
+                request.getText()
+        );
+
+        // Notify user via WebSocket
+        chatNotificationService.notifyUser(
+                request.getUserId(),
+                "admin",
+                request.getText(),
+                message.getId()
+        );
+
+        // Notify other admins monitoring this session
+        chatNotificationService.notifySessionUpdate(
+                request.getSessionId(),
+                "admin_reply",
+                request.getText(),
+                message.getId()
+        );
+
+        log.info("Admin {} sent direct message to user {} in session {}",
+                admin.getUsername(), request.getUserId(), request.getSessionId());
+
+        return ResponseEntity.ok(Map.of("status", "success", "messageId", message.getId().toString()));
     }
 }
