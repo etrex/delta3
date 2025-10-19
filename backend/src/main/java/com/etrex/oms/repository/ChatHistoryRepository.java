@@ -40,4 +40,15 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, Long> 
      * Get chat history by user ID
      */
     List<ChatHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    /**
+     * Get all sessions with their last message
+     * Returns: [sessionId, userId, lastMessage, lastMessageTime]
+     */
+    @Query(value = "SELECT DISTINCT ON (session_id) session_id, user_id, content, created_at " +
+                   "FROM chat_history " +
+                   "WHERE message_type = 'MESSAGE' " +
+                   "ORDER BY session_id, created_at DESC",
+                   nativeQuery = true)
+    List<Object[]> findAllSessionsWithLastMessage();
 }

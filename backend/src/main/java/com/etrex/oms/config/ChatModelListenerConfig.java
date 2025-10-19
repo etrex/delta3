@@ -3,9 +3,13 @@
  */
 package com.etrex.oms.config;
 
+import com.etrex.oms.service.ToolCallCollector;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequest;
 import dev.langchain4j.model.chat.listener.ChatModelResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +20,10 @@ import org.springframework.context.annotation.Configuration;
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class ChatModelListenerConfig {
+
+    private final ToolCallCollector toolCallCollector;
 
     @Bean
     public ChatModelListener loggingChatModelListener() {
@@ -33,6 +40,13 @@ public class ChatModelListenerConfig {
                     log.info("║ ---");
                     log.info("║ Type: {}", msg.type());
                     log.info("║ Content: {}", msg.text());
+
+                    // Detect tool execution results in the message history
+                    if (msg instanceof ToolExecutionResultMessage) {
+                        ToolExecutionResultMessage resultMsg = (ToolExecutionResultMessage) msg;
+                        log.info("║ ✅ Tool Result: {}", resultMsg.toolName());
+                        log.info("║    Result: {}", resultMsg.text());
+                    }
                 });
                 log.info("╚════════════════════════════════════════════════════════════════");
             }
@@ -42,12 +56,21 @@ public class ChatModelListenerConfig {
                 log.info("║ 🟢 LLM RESPONSE");
                 log.info("╠════════════════════════════════════════════════════════════════");
 
-                // Check for tool calls
+                // Check for tool calls and record them
                 if (response.aiMessage().hasToolExecutionRequests()) {
                     log.info("║ 🔧 TOOL CALLS:");
                     response.aiMessage().toolExecutionRequests().forEach(tool -> {
                         log.info("║   - Tool: {}", tool.name());
                         log.info("║     Arguments: {}", tool.arguments());
+
+                        // Record tool call request (result will be recorded later when executed)
+                        // For now, record with placeholder result
+                        toolCallCollector.addToolCall(
+                            tool.name(),
+                            tool.arguments(),
+                            "pending",  // Will be updated when result is available
+                            0
+                        );
                     });
                     log.info("╠════════════════════════════════════════════════════════════════");
                 }

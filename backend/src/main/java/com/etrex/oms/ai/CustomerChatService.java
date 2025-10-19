@@ -52,4 +52,12 @@ public class CustomerChatService {
         }
         return assistant;
     }
+
+    /**
+     * Get the underlying ChatLanguageModel for manual history management
+     * Used for AI-assisted customer service with confidence evaluation
+     */
+    public ChatLanguageModel getChatModel() {
+        return chatLanguageModel;
+    }
 }

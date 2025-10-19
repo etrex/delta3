@@ -5,12 +5,22 @@ package com.etrex.oms.controller;
 
 import com.etrex.oms.ai.CustomerChatService;
 import com.etrex.oms.ai.AdminChatService;
+import com.etrex.oms.dto.AiSuggestionDto;
 import com.etrex.oms.dto.ChatRequest;
 import com.etrex.oms.dto.ChatResponse;
+import com.etrex.oms.entity.AiResponseStatus;
+import com.etrex.oms.entity.ChatAiResponse;
 import com.etrex.oms.entity.ChatHistory;
 import com.etrex.oms.entity.User;
+import com.etrex.oms.service.ChatAiResponseService;
 import com.etrex.oms.service.ChatHistoryService;
 import com.etrex.oms.service.ChatContextService;
+import com.etrex.oms.service.ChatNotificationService;
+import com.etrex.oms.service.ConfidenceEvaluator;
+import com.etrex.oms.service.ToolCallCollector;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +30,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -32,44 +44,145 @@ public class ChatController {
     private final AdminChatService adminChatService;
     private final ChatHistoryService chatHistoryService;
     private final ChatContextService chatContextService;
+    private final ChatAiResponseService chatAiResponseService;
+    private final ChatNotificationService chatNotificationService;
+    private final ConfidenceEvaluator confidenceEvaluator;
+    private final ToolCallCollector toolCallCollector;
 
     @PostMapping
-    @Operation(summary = "Customer chat", description = "Customer chat with AI assistant (tool calling enabled)")
+    @Operation(summary = "Customer chat", description = "Customer chat with AI assistant (AI-assisted with confidence evaluation)")
     public ResponseEntity<ChatResponse> customerChat(
             @RequestBody ChatRequest request,
             @AuthenticationPrincipal User user) {
 
         String sessionId = String.valueOf(user.getId());
         Long userId = user.getId();
+        String userName = user.getUsername();
 
         log.debug("Customer chat request from user {}", userId);
 
         try {
-            // Get user message
+            // 1. Get user message
             String userMessage = request.getMessage();
 
-            // Build dynamic context (cart + current page) - append at the END
+            // 2. Build dynamic context (cart + current page) - append at the END
             String dynamicContext = chatContextService.buildDynamicContext(user, request.getPageContext());
             String messageWithContext = userMessage + dynamicContext;
 
-            // Save user message (without dynamic context to keep history clean)
-            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.USER.name(), userMessage);
+            // 3. Save user message (without dynamic context to keep history clean)
+            ChatHistory userMsgHistory = chatHistoryService.saveMessage(
+                    sessionId, userId, ChatHistory.Role.USER.name(), userMessage);
 
-            // Get AI response (may throw exception)
-            String response = customerChatService.getAssistant().chat(messageWithContext);
+            // 4. Notify admins of new user message
+            chatNotificationService.notifyAdminsNewMessage(
+                    sessionId, userId, userName, userMessage, userMsgHistory.getId());
 
-            // Save AI response
-            chatHistoryService.saveMessage(sessionId, userId, ChatHistory.Role.ASSISTANT.name(), response);
+            // 5. Clear and initialize ToolCallCollector for this request
+            toolCallCollector.clear();
 
+            // 6. Get conversation history (manual history management)
+            List<ChatHistory> historyRecords = chatHistoryService.getRecentHistory(sessionId, 20);
+            List<ChatMessage> conversationHistory = chatHistoryService.getHistoryAsChatMessages(sessionId, 20);
+
+            // 7. Build messages for AI (history + new user message with context)
+            List<ChatMessage> messages = new ArrayList<>(conversationHistory);
+            messages.add(new UserMessage(messageWithContext));
+
+            // 8. Get AI response using manual chat (NOT using langchain4j ChatMemory)
+            String aiResponse = customerChatService.getChatModel().generate(messages).content().text();
+
+            // 9. Collect tool calls from ThreadLocal
+            String toolCallsJson = toolCallCollector.toJson();
+
+            // 10. Evaluate confidence
+            double confidence = confidenceEvaluator.evaluateConfidence(
+                    userMessage,
+                    aiResponse,
+                    toolCallsJson,
+                    historyRecords
+            );
+
+            log.info("AI response confidence: {}", confidence);
+
+            // 11. Save AI response record
+            AiResponseStatus status;
+            if (confidence >= 0.8) {
+                status = AiResponseStatus.AUTO_SENT;
+            } else {
+                status = AiResponseStatus.PENDING;
+            }
+
+            ChatAiResponse aiResponseRecord = chatAiResponseService.saveAiResponse(
+                    sessionId,
+                    userMsgHistory.getId(),
+                    aiResponse,
+                    confidence,
+                    toolCallsJson,
+                    status
+            );
+
+            // 12. Confidence-based routing
             ChatResponse chatResponse = new ChatResponse();
-            chatResponse.setResponse(response);
             chatResponse.setSessionId(sessionId);
+
+            if (confidence >= 0.8) {
+                // ✅ AUTO-SEND (confidence >= 80%)
+                log.info("Auto-sending AI response (confidence: {})", confidence);
+
+                // Save assistant message
+                ChatHistory assistantMsg = chatHistoryService.saveMessage(
+                        sessionId, userId, ChatHistory.Role.ASSISTANT.name(), aiResponse);
+
+                // Mark as auto-sent
+                chatAiResponseService.markAsAutoSent(aiResponseRecord.getId(), assistantMsg.getId());
+
+                // Notify user via WebSocket
+                chatNotificationService.notifyUser(userId, "ai_auto", aiResponse, assistantMsg.getId());
+
+                // Notify admins monitoring this session
+                chatNotificationService.notifySessionUpdateWithAiInfo(
+                        sessionId, aiResponse, assistantMsg.getId(), confidence, aiResponseRecord.getId());
+
+                chatResponse.setResponse(aiResponse);
+
+            } else if (confidence >= 0.4) {
+                // 📋 SUGGEST TO ADMIN (40% <= confidence < 80%)
+                log.info("Suggesting AI response to admin for review (confidence: {})", confidence);
+
+                // Create AI suggestion DTO
+                AiSuggestionDto suggestion = AiSuggestionDto.builder()
+                        .aiResponseId(aiResponseRecord.getId())
+                        .sessionId(sessionId)
+                        .userId(userId)
+                        .suggestedText(aiResponse)
+                        .confidence(confidence)
+                        .createdAt(aiResponseRecord.getCreatedAt())
+                        .build();
+
+                // Notify admins of suggestion
+                chatNotificationService.notifyAdminsSuggestion(suggestion);
+
+                // Return pending message to user
+                String pendingMessage = "您的問題已收到，客服人員將儘快為您服務。";
+                chatResponse.setResponse(pendingMessage);
+
+            } else {
+                // ⏳ WAIT FOR MANUAL HANDLING (confidence < 40%)
+                log.info("AI confidence too low, waiting for manual handling (confidence: {})", confidence);
+
+                // Return waiting message to user
+                String waitingMessage = "您的問題已收到，客服人員將儘快為您服務。";
+                chatResponse.setResponse(waitingMessage);
+            }
 
             return ResponseEntity.ok(chatResponse);
 
         } catch (Exception e) {
             log.error("Customer chat error for user {}", userId, e);
             return handleChatError(e, sessionId, userId);
+        } finally {
+            // 13. Clean up ToolCallCollector
+            toolCallCollector.remove();
         }
     }
 
