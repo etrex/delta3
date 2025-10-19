@@ -5,7 +5,8 @@ import axios from './axios'
 import type { Product } from '@/types'
 
 export default {
-  getProducts(params?: any, tracking: boolean = true, context?: string) {
+  getProducts(options?: { tracking?: boolean; context?: string; [key: string]: any }) {
+    const { tracking = true, context, ...params } = options || {}
     return axios.get('/product', { params: { ...params, tracking, context } })
   },
 

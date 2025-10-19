@@ -38,7 +38,11 @@ onMounted(async () => {
 
 async function loadProducts() {
   try {
-    const data = await productsApi.getProducts({ status: 'ACTIVE' })
+    const data = await productsApi.getProducts({
+      status: 'ACTIVE',
+      tracking: true,
+      context: 'customer_products'
+    })
     products.value = data.content || data
   } catch (error) {
     console.error('Failed to load products:', error)

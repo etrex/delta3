@@ -175,8 +175,21 @@
 
           <!-- User Context Tab -->
           <div v-show="activeTab === 'context'" class="context-panel">
+            <!-- General Page Context -->
+            <div v-if="userContext && !userContext.productId && !userContext.orderId" class="general-context">
+              <div class="context-header">
+                <small class="context-badge">正在查看</small>
+                <small class="last-update">{{ formatTime(userContext.lastUpdate) }}</small>
+              </div>
+
+              <div class="page-info-display">
+                <el-icon class="page-icon"><Document /></el-icon>
+                <h3>{{ userContext.currentPage || '未知頁面' }}</h3>
+              </div>
+            </div>
+
             <!-- Product Context -->
-            <div v-if="userContext?.productId && productInfo" class="product-context">
+            <div v-else-if="userContext?.productId && productInfo" class="product-context">
               <div class="context-header">
                 <small class="context-badge">正在查看</small>
                 <small class="last-update">{{ formatTime(userContext.lastUpdate) }}</small>
@@ -328,7 +341,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, Position, Promotion, Loading } from '@element-plus/icons-vue'
+import { Search, Refresh, Position, Promotion, Loading, Document } from '@element-plus/icons-vue'
 import chatApi, { SessionDto, ChatHistory, AiSuggestionDto } from '@/api/chat'
 import { useChatWebSocket, type ChatMessage as WSMessage } from '@/composables/useChatWebSocket'
 
@@ -618,26 +631,23 @@ async function sendManualMessage() {
   }
 }
 
-// Load initial context from chat history (find most recent action with product/order)
+// Load initial context from chat history (find most recent action with product/order or general page)
 function loadInitialContextFromHistory() {
   // Find most recent action record with actionTarget
   const recentActions = chatHistory.value
     .filter(msg => msg.actionType && msg.actionTarget)
     .reverse() // Most recent first
 
-  // Look for most recent product or order action
-  for (const action of recentActions) {
-    const target = action.actionTarget || ''
-
-    // Check if it contains product ID or order ID
-    if (target.match(/商品\s*ID[:：]\s*(\d+)/) || target.match(/訂單\s*ID[:：]\s*(\d+)/)) {
-      console.log('Loading initial context from history:', target)
-      parseUserAction(target, false) // Don't auto-switch tab on initial load
-      return
-    }
+  // Get the most recent action (regardless of type)
+  if (recentActions.length > 0) {
+    const mostRecentAction = recentActions[0]
+    const target = mostRecentAction.actionTarget || ''
+    console.log('Loading initial context from history:', target)
+    parseUserAction(target, false) // Don't auto-switch tab on initial load
+    return
   }
 
-  // No product/order action found, clear context
+  // No action found, clear context
   userContext.value = null
   productInfo.value = null
   orderInfo.value = null
@@ -985,6 +995,36 @@ h3 {
 .last-update {
   color: #909399;
   font-size: 11px;
+}
+
+/* General Page Context Styles */
+.general-context {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.page-info-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f3 100%);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.page-icon {
+  font-size: 48px;
+  color: #909399;
+  margin-bottom: 16px;
+}
+
+.page-info-display h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #606266;
+  margin: 0;
+  line-height: 1.6;
 }
 
 /* Product Context Styles */

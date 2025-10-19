@@ -188,7 +188,7 @@ async function loadDashboardData() {
     }, 0)
 
     // Load products (disable tracking for background data loading)
-    const productsResponse = await productsApi.getProducts({}, false)  // tracking=false for dashboard
+    const productsResponse = await productsApi.getProducts({ tracking: false })  // tracking=false for dashboard
     const products = productsResponse.content || productsResponse || []
     stats.value.totalProducts = products.length
 
