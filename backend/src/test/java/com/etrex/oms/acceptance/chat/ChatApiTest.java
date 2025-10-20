@@ -15,7 +15,7 @@ public class ChatApiTest extends BaseAcceptanceTest {
     void testChatAPI() throws Exception {
         ChatRequest chatRequest = new ChatRequest();
         chatRequest.setMessage("我想查詢訂單狀態");
-        chatRequest.setSessionId("test-session-123");
+        // Note: sessionId is now automatically set to userId (101 for customer1)
 
         mockMvc.perform(post("/api/chat")
                 .header("Authorization", "Bearer " + customerToken)
@@ -23,6 +23,6 @@ public class ChatApiTest extends BaseAcceptanceTest {
                 .content(objectMapper.writeValueAsString(chatRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.response").exists())
-                .andExpect(jsonPath("$.sessionId").value("test-session-123"));
+                .andExpect(jsonPath("$.sessionId").value("101")); // customer1's ID
     }
 }

@@ -238,8 +238,8 @@ public class OrderService {
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        if (order.getStatus() != Order.Status.PAID && order.getStatus() != Order.Status.CREATED) {
-            throw new BusinessException("Only created or paid orders can be approved");
+        if (order.getStatus() != Order.Status.PAID) {
+            throw new BusinessException("Only paid orders can be approved");
         }
 
         order.setStatus(Order.Status.APPROVED);

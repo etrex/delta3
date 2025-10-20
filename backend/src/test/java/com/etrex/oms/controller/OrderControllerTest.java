@@ -7,6 +7,7 @@ import com.etrex.oms.dto.CreateOrderRequest;
 import com.etrex.oms.dto.OrderDTO;
 import com.etrex.oms.dto.PaymentDTO;
 import com.etrex.oms.entity.User;
+import com.etrex.oms.service.ChatHistoryService;
 import com.etrex.oms.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,9 @@ class OrderControllerTest {
 
     @MockBean
     private OrderService orderService;
+
+    @MockBean
+    private ChatHistoryService chatHistoryService;
 
     private OrderDTO testOrder;
     private PaymentDTO testPayment;

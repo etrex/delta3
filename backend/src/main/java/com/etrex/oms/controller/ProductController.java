@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,7 +36,24 @@ public class ProductController {
             @RequestParam(defaultValue = "true") boolean tracking,
             @RequestParam(required = false) String context,
             Pageable pageable) {
-        Product.Status productStatus = status != null ? Product.Status.valueOf(status) : null;
+
+        // Check if user is admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // Determine product status filter
+        Product.Status productStatus;
+        if (status != null) {
+            productStatus = Product.Status.valueOf(status);
+        } else if (!isAdmin) {
+            // Non-admin users can only see ACTIVE products by default
+            productStatus = Product.Status.ACTIVE;
+        } else {
+            // Admin can see all products by default
+            productStatus = null;
+        }
+
         Page<ProductDTO> result = productService.getProducts(keyword, productStatus, pageable);
 
         // Track operation only if tracking=true

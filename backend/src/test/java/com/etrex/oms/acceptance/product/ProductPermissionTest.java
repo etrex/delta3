@@ -7,6 +7,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -35,7 +36,8 @@ public class ProductPermissionTest extends BaseAcceptanceTest {
 
         // 確認沒有 INACTIVE 商品
         for (Map<String, Object> product : customerProducts) {
-            assert !product.get("status").equals("INACTIVE");
+            assertNotEquals("INACTIVE", product.get("status"),
+                "Customer should not see INACTIVE products");
         }
 
         // Admin 可以看到所有商品（包含下架）

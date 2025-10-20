@@ -21,7 +21,7 @@ class OrderDTOTest {
         dto.setOrderNo("ORD-001");
         dto.setCustomerId(1L);
         dto.setCustomerName("Test Customer");
-        dto.setTotalAmount(199);
+        dto.setTotalAmount(2000);
         dto.setStatus("CREATED");
         LocalDateTime now = LocalDateTime.now();
         dto.setCreatedAt(now);

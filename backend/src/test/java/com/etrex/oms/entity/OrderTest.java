@@ -27,7 +27,7 @@ class OrderTest {
         order.setId(1L);
         order.setOrderNo("ORD-001");
         order.setCustomer(customer);
-        order.setTotalAmount(199);
+        order.setTotalAmount(2000);
         order.setStatus(Order.Status.CREATED);
         order.setCreatedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
