@@ -280,4 +280,83 @@ public class ChatController {
         List<ChatHistory> history = chatHistoryService.getHistory(sessionId);
         return ResponseEntity.ok(history);
     }
+
+    @PostMapping("/action")
+    @Operation(summary = "Record user action", description = "Record user action to chat history for AI context")
+    public ResponseEntity<Void> recordAction(
+            @RequestBody ActionRequest request,
+            @AuthenticationPrincipal User user) {
+
+        String sessionId = String.valueOf(user.getId());
+        Long userId = user.getId();
+
+        // Convert string to enum
+        ChatHistory.ActionType actionType;
+        try {
+            actionType = ChatHistory.ActionType.valueOf(request.getActionType());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid action type: {}", request.getActionType());
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Save action to chat history
+        ChatHistory action = chatHistoryService.saveAction(
+                sessionId,
+                userId,
+                actionType,
+                request.getActionTarget()
+        );
+
+        // Notify user themselves via WebSocket
+        chatNotificationService.notifyUser(
+                userId,
+                "user_action",
+                action.getContent(),
+                action.getId()
+        );
+
+        // Notify admins monitoring this session
+        chatNotificationService.notifySessionUpdate(
+                sessionId,
+                "user_action",
+                action.getContent(),
+                action.getId()
+        );
+
+        // Notify all admins of user action
+        chatNotificationService.notifyAdminsUserAction(
+                sessionId,
+                userId,
+                user.getUsername(),
+                request.getActionType(),
+                request.getActionTarget()
+        );
+
+        log.debug("Recorded user action: userId={}, type={}, target={}",
+                userId, request.getActionType(), request.getActionTarget());
+
+        return ResponseEntity.ok().build();
+    }
+
+    // DTO for action recording
+    public static class ActionRequest {
+        private String actionType;
+        private String actionTarget;
+
+        public String getActionType() {
+            return actionType;
+        }
+
+        public void setActionType(String actionType) {
+            this.actionType = actionType;
+        }
+
+        public String getActionTarget() {
+            return actionTarget;
+        }
+
+        public void setActionTarget(String actionTarget) {
+            this.actionTarget = actionTarget;
+        }
+    }
 }

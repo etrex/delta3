@@ -46,7 +46,7 @@ public class ChatHistoryService {
      * Save a user action to chat history
      */
     @Transactional
-    public ChatHistory saveAction(String sessionId, Long userId, String actionType, String actionTarget) {
+    public ChatHistory saveAction(String sessionId, Long userId, ChatHistory.ActionType actionType, String actionTarget) {
         ChatHistory history = new ChatHistory();
         history.setSessionId(sessionId);
         history.setUserId(userId);
@@ -61,15 +61,15 @@ public class ChatHistoryService {
     /**
      * Format action as readable text for AI
      */
-    private String formatAction(String actionType, String actionTarget) {
-        return switch (actionType.toUpperCase()) {
-            case "NAVIGATE" -> String.format("(開啟頁面 %s)", actionTarget);
-            case "CLICK" -> String.format("(點擊按鈕 %s)", actionTarget);
-            case "SUBMIT" -> String.format("(提交表單 %s)", actionTarget);
-            case "OPEN_MODAL" -> String.format("(開啟彈窗 %s)", actionTarget);
-            case "CLOSE_MODAL" -> String.format("(關閉彈窗 %s)", actionTarget);
-            case "API_CALL" -> String.format("(執行: %s)", actionTarget);
-            default -> String.format("(執行操作 %s: %s)", actionType, actionTarget);
+    private String formatAction(ChatHistory.ActionType actionType, String actionTarget) {
+        return switch (actionType) {
+            case NAVIGATE -> String.format("(開啟頁面 %s)", actionTarget);
+            case CLICK -> String.format("(點擊按鈕 %s)", actionTarget);
+            case SUBMIT -> String.format("(提交表單 %s)", actionTarget);
+            case OPEN_MODAL -> String.format("(開啟彈窗 %s)", actionTarget);
+            case CLOSE_MODAL -> String.format("(關閉彈窗 %s)", actionTarget);
+            case OPEN_FAQ -> String.format("(%s)", actionTarget);
+            case API_CALL -> String.format("(執行: %s)", actionTarget);
         };
     }
 
@@ -141,11 +141,19 @@ public class ChatHistoryService {
                 String sessionId = String.valueOf(user.getId());
 
                 // Save action to database
-                saveAction(sessionId, user.getId(), "api_call", description);
+                ChatHistory action = saveAction(sessionId, user.getId(), ChatHistory.ActionType.API_CALL, description);
+
+                // Notify user themselves via WebSocket
+                chatNotificationService.notifyUser(
+                        user.getId(),
+                        "user_action",
+                        action.getContent(),
+                        action.getId()
+                );
 
                 // Notify admins via WebSocket
                 chatNotificationService.notifyAdminsUserAction(
-                        sessionId, user.getId(), user.getUsername(), "api_call", description);
+                        sessionId, user.getId(), user.getUsername(), "API_CALL", description);
 
                 log.debug("Tracked: {} for user {}", description, user.getUsername());
             }
@@ -167,11 +175,19 @@ public class ChatHistoryService {
             String sessionId = String.valueOf(user.getId());
 
             // Save action to database
-            saveAction(sessionId, user.getId(), "api_call", description);
+            ChatHistory action = saveAction(sessionId, user.getId(), ChatHistory.ActionType.API_CALL, description);
+
+            // Notify user themselves via WebSocket
+            chatNotificationService.notifyUser(
+                    user.getId(),
+                    "user_action",
+                    action.getContent(),
+                    action.getId()
+            );
 
             // Notify admins via WebSocket
             chatNotificationService.notifyAdminsUserAction(
-                    sessionId, user.getId(), user.getUsername(), "api_call", description);
+                    sessionId, user.getId(), user.getUsername(), "API_CALL", description);
 
             log.debug("Tracked: {} for user {}", description, user.getUsername());
         } catch (Exception e) {

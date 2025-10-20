@@ -283,13 +283,24 @@ onMounted(async () => {
   // Connect to WebSocket and subscribe to user messages
   if (authStore.user?.id) {
     try {
-      await subscribeToUserMessages(authStore.user.id, (message: WSMessage) => {
+      await subscribeToUserMessages(authStore.user.id, (message: any) => {
         console.log('Received WebSocket message:', message)
 
-        // Add bot message to chat
+        // Determine message type based on messageType from backend
+        // Note: Backend sends 'messageType' field, not 'type'
+        let messageType: 'user' | 'bot' | 'action' | 'navigation' = 'bot'
+        const backendMessageType = message.messageType || message.type
+
+        if (backendMessageType === 'user_action') {
+          messageType = 'action'
+        } else if (backendMessageType === 'navigation') {
+          messageType = 'navigation'
+        }
+
+        // Add message to chat
         messages.value.push({
           content: message.content,
-          type: 'bot',
+          type: messageType,
           timestamp: Date.now()
         })
 
@@ -297,8 +308,8 @@ onMounted(async () => {
           scrollToBottom()
         })
 
-        // Show notification if chat is closed
-        if (!isOpen.value) {
+        // Show notification if chat is closed (skip for action messages)
+        if (!isOpen.value && messageType !== 'action') {
           ElMessage({
             message: '您收到新的客服訊息',
             type: 'info',

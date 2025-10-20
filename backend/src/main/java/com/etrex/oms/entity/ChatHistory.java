@@ -30,8 +30,9 @@ public class ChatHistory {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "action_type", length = 50)
-    private String actionType;  // navigate, click, submit
+    private ActionType actionType;
 
     @Column(name = "action_target")
     private String actionTarget;
@@ -53,6 +54,12 @@ public class ChatHistory {
     }
 
     public enum ActionType {
-        NAVIGATE, CLICK, SUBMIT, OPEN_MODAL, CLOSE_MODAL
+        NAVIGATE,       // 頁面導航
+        CLICK,          // 按鈕點擊
+        SUBMIT,         // 表單提交
+        OPEN_MODAL,     // 開啟彈窗
+        CLOSE_MODAL,    // 關閉彈窗
+        OPEN_FAQ,       // 展開FAQ
+        API_CALL        // 後端API呼叫（所有業務操作）
     }
 }

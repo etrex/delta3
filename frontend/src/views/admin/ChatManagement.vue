@@ -80,6 +80,33 @@
                   <el-icon><Position /></el-icon>
                   {{ msg.actionType }}: {{ msg.actionTarget }}
                 </div>
+
+                <!-- Feedback buttons for AI messages -->
+                <div v-if="msg.role === 'ASSISTANT' && msg.messageType === 'MESSAGE'" class="message-feedback">
+                  <div v-if="!messageFeedback[msg.id]" class="feedback-buttons">
+                    <el-button
+                      size="small"
+                      text
+                      @click="handleFeedback(msg.id, 'POSITIVE')"
+                      class="feedback-btn"
+                    >
+                      👍
+                    </el-button>
+                    <el-button
+                      size="small"
+                      text
+                      @click="handleFeedback(msg.id, 'NEGATIVE')"
+                      class="feedback-btn"
+                    >
+                      👎
+                    </el-button>
+                  </div>
+                  <div v-else class="feedback-status">
+                    <el-tag :type="messageFeedback[msg.id] === 'POSITIVE' ? 'success' : 'danger'" size="small">
+                      {{ messageFeedback[msg.id] === 'POSITIVE' ? '👍 已標記為有幫助' : '👎 已標記為無幫助' }}
+                    </el-tag>
+                  </div>
+                </div>
               </div>
 
               <!-- AI Generating Status -->
@@ -340,6 +367,30 @@
         <el-button type="primary" @click="confirmReject">確認發送</el-button>
       </template>
     </el-dialog>
+
+    <!-- Feedback Dialog -->
+    <el-dialog
+      v-model="feedbackDialogVisible"
+      :title="currentFeedbackType === 'POSITIVE' ? '👍 正面反饋' : '👎 負面反饋'"
+      width="500px"
+    >
+      <p style="margin-bottom: 15px; color: #606266;">
+        {{ currentFeedbackType === 'POSITIVE'
+          ? '感謝您的反饋！您可以選擇性地說明此回覆的優點：'
+          : '感謝您的反饋！請說明此回覆的問題，幫助我們改進：'
+        }}
+      </p>
+      <el-input
+        v-model="feedbackReason"
+        type="textarea"
+        :rows="4"
+        :placeholder="currentFeedbackType === 'POSITIVE' ? '(選填) 例如：回答準確、語氣友善...' : '(選填) 例如：答非所問、資訊錯誤...'"
+      />
+      <template #footer>
+        <el-button @click="feedbackDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitFeedback">提交反饋</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -379,6 +430,13 @@ const rejectDialogVisible = ref(false)
 const modifiedText = ref('')
 const manualReply = ref('')
 const currentSuggestion = ref<AiSuggestionDto | null>(null)
+
+// Feedback states
+const messageFeedback = ref<Record<number, 'POSITIVE' | 'NEGATIVE'>>({})
+const feedbackDialogVisible = ref(false)
+const feedbackReason = ref('')
+const currentFeedbackMessageId = ref<number | null>(null)
+const currentFeedbackType = ref<'POSITIVE' | 'NEGATIVE' | null>(null)
 
 // Computed
 const filteredSessions = computed(() => {
@@ -681,6 +739,36 @@ async function sendManualMessage() {
   }
 }
 
+// Handle feedback button click
+function handleFeedback(messageId: number, feedbackType: 'POSITIVE' | 'NEGATIVE') {
+  currentFeedbackMessageId.value = messageId
+  currentFeedbackType.value = feedbackType
+  feedbackReason.value = ''
+  feedbackDialogVisible.value = true
+}
+
+// Submit feedback
+async function submitFeedback() {
+  if (!currentFeedbackMessageId.value || !currentFeedbackType.value) return
+
+  try {
+    await chatApi.provideFeedback({
+      aiResponseId: currentFeedbackMessageId.value,
+      feedbackType: currentFeedbackType.value,
+      reason: feedbackReason.value || undefined
+    })
+
+    // Update local feedback state
+    messageFeedback.value[currentFeedbackMessageId.value] = currentFeedbackType.value
+
+    ElMessage.success('感謝您的反饋')
+    feedbackDialogVisible.value = false
+  } catch (error) {
+    console.error('Failed to submit feedback:', error)
+    ElMessage.error('提交反饋失敗')
+  }
+}
+
 // Load initial context from chat history (find most recent action with product/order or general page)
 function loadInitialContextFromHistory() {
   // Find most recent action record with actionTarget
@@ -933,6 +1021,32 @@ h3 {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+/* Feedback buttons */
+.message-feedback {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.feedback-btn {
+  font-size: 18px;
+  padding: 4px 12px;
+  transition: transform 0.2s;
+}
+
+.feedback-btn:hover {
+  transform: scale(1.2);
+}
+
+.feedback-status {
+  font-size: 13px;
 }
 
 /* AI Generating Status */

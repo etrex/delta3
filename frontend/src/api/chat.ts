@@ -143,5 +143,13 @@ export default {
   // Admin API - Get session generation status
   getSessionStatus(sessionId: string): Promise<{ isGenerating: boolean }> {
     return axios.get(`/admin/chat/sessions/${sessionId}/status`)
+  },
+
+  // Record user action to chat history
+  recordAction(actionType: string, actionTarget: string): Promise<void> {
+    return axios.post('/chat/action', {
+      actionType,
+      actionTarget
+    })
   }
 }

@@ -76,16 +76,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Search, QuestionFilled, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import faqsApi, { type Faq } from '@/api/faqs'
+import chatApi from '@/api/chat'
 
 const faqs = ref<Faq[]>([])
 const categories = ref<string[]>([])
 const currentCategory = ref('全部')
 const searchKeyword = ref('')
-const activeItems = ref<number[]>([])
+const activeItems = ref<number | undefined>(undefined)
 const loading = ref(false)
 
 // Computed
@@ -141,18 +142,18 @@ async function loadCategories() {
 function handleCategoryChange() {
   // Reset search when category changes
   searchKeyword.value = ''
-  activeItems.value = []
+  activeItems.value = undefined
 }
 
 function handleSearch() {
   // Reset active items when searching
-  activeItems.value = []
+  activeItems.value = undefined
 }
 
 function clearSearch() {
   searchKeyword.value = ''
   currentCategory.value = '全部'
-  activeItems.value = []
+  activeItems.value = undefined
 }
 
 function highlightKeyword(text: string): string {
@@ -165,9 +166,29 @@ function highlightKeyword(text: string): string {
   return text.replace(regex, '<mark>$1</mark>')
 }
 
+// Track FAQ expansion
+// Note: Expansion is tracked here because it's a UI interaction that doesn't trigger an API call
+// (FAQ data is already loaded in the list)
+watch(activeItems, (newVal, oldVal) => {
+  // When a FAQ is expanded (newVal is a number, not undefined)
+  // And it's different from the previous value
+  if (newVal !== undefined && newVal !== oldVal) {
+    const expandedFaq = faqs.value.find(faq => faq.id === newVal)
+    if (expandedFaq) {
+      try {
+        chatApi.recordAction('OPEN_FAQ', `展開FAQ: ${expandedFaq.question}`)
+        console.log(`Recorded FAQ expansion: ${expandedFaq.question}`)
+      } catch (error) {
+        console.error('Failed to record FAQ expansion:', error)
+      }
+    }
+  }
+})
+
 // Lifecycle
 onMounted(async () => {
   await Promise.all([loadFaqs(), loadCategories()])
+  // Note: Page view is now automatically tracked by backend when calling getFaqs()
 })
 </script>
 

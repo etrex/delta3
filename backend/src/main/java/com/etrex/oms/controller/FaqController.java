@@ -4,13 +4,16 @@
 package com.etrex.oms.controller;
 
 import com.etrex.oms.entity.Faq;
+import com.etrex.oms.entity.User;
 import com.etrex.oms.repository.FaqRepository;
+import com.etrex.oms.service.ChatHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class FaqController {
 
     private final FaqRepository faqRepository;
+    private final ChatHistoryService chatHistoryService;
 
     /**
      * Get all FAQs or filter by category
@@ -36,15 +40,23 @@ public class FaqController {
      */
     @GetMapping
     @Operation(summary = "Get all FAQs", description = "Get all FAQs, optionally filter by category")
-    public ResponseEntity<List<Faq>> getAllFaqs(@RequestParam(required = false) String category) {
+    public ResponseEntity<List<Faq>> getAllFaqs(
+            @RequestParam(required = false) String category,
+            @AuthenticationPrincipal User user) {
         List<Faq> faqs;
 
         if (category != null && !category.trim().isEmpty()) {
             faqs = faqRepository.findByCategory(category);
             log.debug("Retrieved {} FAQs for category: {}", faqs.size(), category);
+
+            // Track operation
+            chatHistoryService.track(user, String.format("瀏覽FAQ列表 (分類: %s)", category));
         } else {
             faqs = faqRepository.findAllByOrderByCreatedAtDesc();
             log.debug("Retrieved all {} FAQs", faqs.size());
+
+            // Track operation
+            chatHistoryService.track(user, "瀏覽FAQ列表");
         }
 
         return ResponseEntity.ok(faqs);
@@ -91,9 +103,15 @@ public class FaqController {
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get FAQ by ID", description = "Get single FAQ by ID")
-    public ResponseEntity<Faq> getFaqById(@PathVariable Long id) {
+    public ResponseEntity<Faq> getFaqById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
         return faqRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(faq -> {
+                    // Track operation with FAQ question
+                    chatHistoryService.track(user, String.format("查看FAQ: %s", faq.getQuestion()));
+                    return ResponseEntity.ok(faq);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
