@@ -19,6 +19,12 @@
           <router-link to="/admin/shipping" class="nav-link">
             出貨管理
           </router-link>
+          <router-link to="/admin/chat" class="nav-link">
+            客服管理
+          </router-link>
+          <router-link to="/admin/faqs" class="nav-link">
+            FAQ 管理
+          </router-link>
 
           <span class="username">{{ authStore.user?.username }}</span>
           <el-button @click="handleLogout" size="small">登出</el-button>

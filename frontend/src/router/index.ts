@@ -47,6 +47,11 @@ const router = createRouter({
           path: 'orders/:id',
           name: 'OrderDetail',
           component: () => import('@/views/customer/OrderDetail.vue')
+        },
+        {
+          path: 'faqs',
+          name: 'Faqs',
+          component: () => import('@/views/customer/Faqs.vue')
         }
       ]
     },
@@ -115,6 +120,12 @@ const router = createRouter({
           path: 'chat',
           name: 'ChatManagement',
           component: () => import('@/views/admin/ChatManagement.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'faqs',
+          name: 'FaqManagement',
+          component: () => import('@/views/admin/FaqManagement.vue'),
           meta: { requiresAdmin: true }
         }
       ]

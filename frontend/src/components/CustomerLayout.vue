@@ -13,6 +13,9 @@
           <router-link to="/orders" class="nav-link">
             我的訂單
           </router-link>
+          <router-link to="/faqs" class="nav-link">
+            常見問題
+          </router-link>
 
           <div class="cart-icon" data-cy="cart-icon" @click="showCartDrawer">
             <el-badge :value="totalItems" :hidden="totalItems === 0">
