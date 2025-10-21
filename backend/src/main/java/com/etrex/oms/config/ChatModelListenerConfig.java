@@ -27,6 +27,7 @@ public class ChatModelListenerConfig {
     @Bean
     public ChatModelListener loggingChatModelListener() {
         return new ChatModelListener() {
+            @SuppressWarnings("unused")
             public void onRequest(ChatModelRequest request) {
                 log.info("╔════════════════════════════════════════════════════════════════");
                 log.info("║ 🔵 LLM REQUEST");
@@ -50,6 +51,7 @@ public class ChatModelListenerConfig {
                 log.info("╚════════════════════════════════════════════════════════════════");
             }
 
+            @SuppressWarnings("unused")
             public void onResponse(ChatModelResponse response) {
                 log.info("╔════════════════════════════════════════════════════════════════");
                 log.info("║ 🟢 LLM RESPONSE");
@@ -90,6 +92,7 @@ public class ChatModelListenerConfig {
                 log.info("╚════════════════════════════════════════════════════════════════");
             }
 
+            @SuppressWarnings("unused")
             public void onError(Throwable error) {
                 log.error("╔════════════════════════════════════════════════════════════════");
                 log.error("║ 🔴 LLM ERROR");
