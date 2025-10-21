@@ -79,6 +79,9 @@
               placeholder="1234 5678 9012 3456"
               maxlength="16"
             />
+            <div v-if="creditCardForm.cardNumber" class="card-display" data-cy="card-display">
+              {{ maskedCardNumber }}
+            </div>
             <div v-if="errorFields.cardNumber" class="field-error" data-cy="card-number-error">
               請輸入卡號
             </div>
@@ -402,6 +405,17 @@ function getPaymentStatusType(status: string): string {
   }
   return types[status] || 'info'
 }
+
+const maskedCardNumber = computed(() => {
+  const cardNumber = creditCardForm.value.cardNumber
+  if (!cardNumber) return ''
+  if (cardNumber.length < 4) return cardNumber
+
+  // 只顯示最後 4 碼，其餘用 * 遮蔽
+  const lastFour = cardNumber.slice(-4)
+  const masked = '**** **** **** ' + lastFour
+  return masked
+})
 </script>
 
 <style scoped>
@@ -585,6 +599,17 @@ h1 {
 
 .credit-card-form {
   margin-top: 20px;
+}
+
+.card-display {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #606266;
+  letter-spacing: 2px;
 }
 
 .field-error {

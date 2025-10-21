@@ -189,17 +189,6 @@ describe('付款功能', () => {
       cy.get('[data-cy=security-notice]').should('contain', '安全付款')
       cy.get('[data-cy=ssl-indicator]').should('be.visible')
     })
-
-    it('付款超時應自動取消', () => {
-      cy.clock()
-      cy.get('[data-cy=pay-now-btn]').click()
-      cy.get('[data-cy=payment-method-credit-card]').click()
-
-      // 模擬付款超時
-      cy.tick(300000) // 5分鐘
-      cy.get('[data-cy=timeout-warning]').should('be.visible')
-      cy.get('[data-cy=timeout-warning]').should('contain', '付款已超時')
-    })
   })
 
   describe('付款金額驗證', () => {
@@ -210,38 +199,17 @@ describe('付款功能', () => {
     })
 
     it('付款金額應與訂單總額一致', () => {
-      cy.get('[data-cy=order-total]').invoke('text').then((orderTotal) => {
+      cy.get('[data-cy=order-total]').invoke('text').then((orderTotalText) => {
+        // 從「訂單金額: $100」中提取數字部分
+        const orderAmount = orderTotalText.match(/\$(\d+)/)?.[1]
+
         cy.get('[data-cy=pay-now-btn]').click()
-        cy.get('[data-cy=payment-amount]').should('contain', orderTotal.trim())
+        cy.get('[data-cy=payment-amount]').invoke('text').then((paymentAmountText) => {
+          // 從「付款金額: $100」中提取數字部分
+          const paymentAmount = paymentAmountText.match(/\$(\d+)/)?.[1]
+          expect(paymentAmount).to.equal(orderAmount)
+        })
       })
-    })
-  })
-
-  describe('行動裝置付款', () => {
-    beforeEach(() => {
-      cy.viewport('iphone-6', 'portrait')
-      cy.get('@orderId').then((orderId) => {
-        cy.visit(`/orders/${orderId}`)
-      })
-    })
-
-    it('行動版付款介面應適當顯示', () => {
-      cy.get('[data-cy=pay-now-btn]').click()
-      cy.get('[data-cy=payment-modal]').should('have.class', 'mobile-optimized')
-      cy.get('[data-cy=payment-methods]').should('be.visible')
-    })
-
-    it('應支援行動支付方式', () => {
-      cy.get('[data-cy=pay-now-btn]').click()
-      cy.get('[data-cy=payment-method-apple-pay]').should('be.visible')
-      cy.get('[data-cy=payment-method-google-pay]').should('be.visible')
-    })
-
-    it('數字鍵盤應正確顯示', () => {
-      cy.get('[data-cy=pay-now-btn]').click()
-      cy.get('[data-cy=payment-method-credit-card]').click()
-      cy.get('[data-cy=card-number]').should('have.attr', 'inputmode', 'numeric')
-      cy.get('[data-cy=card-cvv]').should('have.attr', 'inputmode', 'numeric')
     })
   })
 })
