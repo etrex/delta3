@@ -46,3 +46,11 @@
 - **JDBC URL**: `jdbc:h2:mem:omsdb`
 - **使用者名稱**: `sa`
 - **密碼**: `password`
+
+## 測試
+
+在 `backend` 目錄下執行：
+
+```bash
+mvn test
+```

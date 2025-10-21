@@ -82,7 +82,7 @@ class OrderControllerTest {
     void getOrders_Success() throws Exception {
         // Given
         Page<OrderDTO> page = new PageImpl<>(Arrays.asList(testOrder));
-        when(orderService.getOrders(any(), any(), any())).thenReturn(page);
+        when(orderService.getOrders(any(), any(), any(), any(), any(), any())).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get("/api/orders"))
@@ -94,7 +94,7 @@ class OrderControllerTest {
     void getOrders_WithFilters() throws Exception {
         // Given
         Page<OrderDTO> page = new PageImpl<>(Arrays.asList(testOrder));
-        when(orderService.getOrders(eq(1L), eq("CREATED"), any())).thenReturn(page);
+        when(orderService.getOrders(eq(1L), eq("CREATED"), any(), any(), any(), any())).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get("/api/orders")
@@ -102,7 +102,7 @@ class OrderControllerTest {
                         .param("status", "CREATED"))
                 .andExpect(status().isOk());
 
-        verify(orderService).getOrders(eq(1L), eq("CREATED"), any());
+        verify(orderService).getOrders(eq(1L), eq("CREATED"), any(), any(), any(), any());
     }
 
     @Test

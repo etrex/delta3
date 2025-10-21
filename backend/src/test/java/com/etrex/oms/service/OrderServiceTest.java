@@ -28,6 +28,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import org.mockito.ArgumentMatchers;
+import org.springframework.data.jpa.domain.Specification;
+
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 
@@ -202,8 +205,7 @@ class OrderServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Order> orderPage = new PageImpl<>(Arrays.asList(testOrder));
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
-        when(orderRepository.findByCustomerAndStatus(testCustomer, Order.Status.CREATED, pageable))
+        when(orderRepository.findAll(ArgumentMatchers.<Specification<Order>>any(), any(Pageable.class)))
                 .thenReturn(orderPage);
 
         Page<OrderDTO> result = orderService.getOrders(1L, "CREATED", pageable);
@@ -217,8 +219,8 @@ class OrderServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Order> orderPage = new PageImpl<>(Arrays.asList(testOrder));
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
-        when(orderRepository.findByCustomer(testCustomer, pageable)).thenReturn(orderPage);
+        when(orderRepository.findAll(ArgumentMatchers.<Specification<Order>>any(), any(Pageable.class)))
+                .thenReturn(orderPage);
 
         Page<OrderDTO> result = orderService.getOrders(1L, null, pageable);
 
@@ -231,7 +233,8 @@ class OrderServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Order> orderPage = new PageImpl<>(Arrays.asList(testOrder));
 
-        when(orderRepository.findByStatus(Order.Status.CREATED, pageable)).thenReturn(orderPage);
+        when(orderRepository.findAll(ArgumentMatchers.<Specification<Order>>any(), any(Pageable.class)))
+                .thenReturn(orderPage);
 
         Page<OrderDTO> result = orderService.getOrders(null, "CREATED", pageable);
 
@@ -244,7 +247,8 @@ class OrderServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Order> orderPage = new PageImpl<>(Arrays.asList(testOrder));
 
-        when(orderRepository.findAll(pageable)).thenReturn(orderPage);
+        when(orderRepository.findAll(ArgumentMatchers.<Specification<Order>>any(), any(Pageable.class)))
+                .thenReturn(orderPage);
 
         Page<OrderDTO> result = orderService.getOrders(null, null, pageable);
 
