@@ -39,7 +39,8 @@ public class ChatNotificationService {
                 .build();
 
         messagingTemplate.convertAndSend("/topic/admin/new-messages", notification);
-        log.debug("Notified admins of new message: sessionId={}, userId={}", sessionId, userId);
+        log.info("Notified admins of new message: sessionId={}, userId={}, notification={}",
+                sessionId, userId, notification);
     }
 
     /**
@@ -48,8 +49,8 @@ public class ChatNotificationService {
      */
     public void notifyAdminsSuggestion(AiSuggestionDto suggestion) {
         messagingTemplate.convertAndSend("/topic/admin/suggestions", suggestion);
-        log.debug("Notified admins of AI suggestion: aiResponseId={}, confidence={}",
-                suggestion.getAiResponseId(), suggestion.getConfidence());
+        log.info("Notified admins of AI suggestion: aiResponseId={}, confidence={}, suggestion={}",
+                suggestion.getAiResponseId(), suggestion.getConfidence(), suggestion);
     }
 
     /**
@@ -86,7 +87,8 @@ public class ChatNotificationService {
                 .build();
 
         messagingTemplate.convertAndSend("/topic/session/" + sessionId + "/updates", notification);
-        log.debug("Notified session AI auto-reply: sessionId={}, confidence={}", sessionId, confidence);
+        log.info("Notified session AI auto-reply: sessionId={}, confidence={}, notification={}",
+                sessionId, confidence, notification);
     }
 
     /**
@@ -111,7 +113,8 @@ public class ChatNotificationService {
                 "/queue/messages",
                 notification
         );
-        log.debug("Notified user: userId={}, messageType={}", userId, messageType);
+        log.info("Notified user: userId={}, messageType={}, notification={}",
+                userId, messageType, notification);
     }
 
     /**
@@ -130,7 +133,7 @@ public class ChatNotificationService {
                 .build();
 
         messagingTemplate.convertAndSend("/topic/admin/user-actions", notification);
-        log.debug("Notified admins of user action: sessionId={}, userId={}, actionType={}",
-                sessionId, userId, actionType);
+        log.info("Notified admins of user action: sessionId={}, userId={}, actionType={}, notification={}",
+                sessionId, userId, actionType, notification);
     }
 }

@@ -4,7 +4,10 @@
 package com.etrex.oms.config;
 
 import com.etrex.oms.service.ToolCallCollector;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequest;
 import dev.langchain4j.model.chat.listener.ChatModelResponse;
@@ -39,10 +42,19 @@ public class ChatModelListenerConfig {
                 request.messages().forEach(msg -> {
                     log.info("║ ---");
                     log.info("║ Type: {}", msg.type());
-                    log.info("║ Content: {}", msg.text());
 
-                    // Detect tool execution results in the message history
-                    if (msg instanceof ToolExecutionResultMessage) {
+                    // Get content based on message type (text() is deprecated)
+                    String content = null;
+                    if (msg instanceof UserMessage) {
+                        content = ((UserMessage) msg).singleText();
+                        log.info("║ Content: {}", content);
+                    } else if (msg instanceof AiMessage) {
+                        content = ((AiMessage) msg).text();
+                        log.info("║ Content: {}", content);
+                    } else if (msg instanceof SystemMessage) {
+                        content = ((SystemMessage) msg).text();
+                        log.info("║ Content: {}", content);
+                    } else if (msg instanceof ToolExecutionResultMessage) {
                         ToolExecutionResultMessage resultMsg = (ToolExecutionResultMessage) msg;
                         log.info("║ ✅ Tool Result: {}", resultMsg.toolName());
                         log.info("║    Result: {}", resultMsg.text());
