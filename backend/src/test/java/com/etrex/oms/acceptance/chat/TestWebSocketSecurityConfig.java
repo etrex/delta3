@@ -4,8 +4,7 @@
 package com.etrex.oms.acceptance.chat;
 
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -24,14 +23,14 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class TestWebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
+    public void configureMessageBroker(@NonNull MessageBrokerRegistry registry) {
         registry.enableSimpleBroker("/topic", "/queue");
         registry.setApplicationDestinationPrefixes("/app");
         registry.setUserDestinationPrefix("/user");
     }
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
+    public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         // Allow all origins for testing
         registry.addEndpoint("/ws/chat")
                 .setAllowedOriginPatterns("*")
@@ -39,11 +38,11 @@ public class TestWebSocketSecurityConfig implements WebSocketMessageBrokerConfig
     }
 
     @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
+    public void configureClientInboundChannel(@NonNull ChannelRegistration registration) {
         // Add interceptor to allow anonymous access in tests
         registration.interceptors(new ChannelInterceptor() {
             @Override
-            public Message<?> preSend(Message<?> message, MessageChannel channel) {
+            public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
                 // Allow all messages in test environment
                 return message;
             }

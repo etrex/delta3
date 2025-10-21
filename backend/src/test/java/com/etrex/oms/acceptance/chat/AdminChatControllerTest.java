@@ -5,9 +5,7 @@ package com.etrex.oms.acceptance.chat;
 
 import com.etrex.oms.acceptance.BaseAcceptanceTest;
 import com.etrex.oms.dto.AdminSendRequest;
-import com.etrex.oms.dto.AiSuggestionDto;
 import com.etrex.oms.dto.FeedbackRequest;
-import com.etrex.oms.dto.SessionDto;
 import com.etrex.oms.entity.*;
 import com.etrex.oms.repository.ChatAiResponseRepository;
 import com.etrex.oms.repository.ChatHistoryRepository;
