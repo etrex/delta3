@@ -100,21 +100,6 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
     }
 
-    @PostMapping("/{id}/pay")
-    @Operation(summary = "Pay for order", description = "Initiate payment for an order")
-    public ResponseEntity<PaymentDTO> payOrder(
-            @PathVariable Long id,
-            @Valid @RequestBody PaymentDTO paymentDTO) {
-        PaymentDTO result = orderService.initiatePayment(id, paymentDTO);
-
-        // Track payment with actual amount from result
-        chatHistoryService.track(
-            String.format("支付訂單 (訂單 ID: %d, 金額: %d, 支付方式: %s)",
-                id, result.getAmount(), result.getPaymentMethod()));
-
-        return ResponseEntity.ok(result);
-    }
-
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel order", description = "Cancel an order")
     public ResponseEntity<OrderDTO> cancelOrder(@PathVariable Long id) {

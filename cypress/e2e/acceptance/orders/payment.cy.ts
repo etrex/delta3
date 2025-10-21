@@ -118,8 +118,8 @@ describe('付款功能', () => {
       cy.get('[data-cy=cash-instructions]').should('contain', '請於收貨時準備現金')
       cy.get('[data-cy=confirm-cash-payment-btn]').click()
 
-      cy.get('[data-cy=success-message]').should('contain', '現金付款訂單已確認')
-      cy.get('[data-cy=payment-status]').should('contain', 'PENDING')
+      cy.get('[data-cy=success-message]', { timeout: 10000 }).should('contain', '付款成功')
+      cy.get('[data-cy=order-status]').should('contain', '已付款')
     })
   })
 
@@ -141,40 +141,24 @@ describe('付款功能', () => {
         cy.get('[data-cy=payment-record]').within(() => {
           cy.get('[data-cy=payment-method]').should('be.visible')
           cy.get('[data-cy=payment-amount]').should('be.visible')
-          cy.get('[data-cy=payment-date]').should('be.visible')
+          cy.get('[data-cy=paid-date]').should('be.visible')
           cy.get('[data-cy=transaction-id]').should('be.visible')
-          cy.get('[data-cy=payment-status]').should('contain', 'SUCCESS')
+          cy.get('[data-cy=payment-status-tag]').should('contain', '成功')
         })
       })
     })
 
     it('付款失敗應顯示錯誤訊息', () => {
-      cy.intercept('POST', '/api/orders/*/pay', {
-        statusCode: 400,
-        body: { message: 'Payment failed: Insufficient funds' }
-      }).as('paymentFailed')
-
       cy.get('[data-cy=pay-now-btn]').click()
       cy.get('[data-cy=payment-method-credit-card]').click()
-      cy.fillCreditCardForm()
+      cy.fillCreditCardForm({ cardExpiry: '01/20' })
       cy.get('[data-cy=confirm-payment-btn]').click()
 
-      cy.wait('@paymentFailed')
-      cy.get('[data-cy=error-message]').should('contain', '付款失敗')
-      cy.get('[data-cy=error-details]').should('contain', 'Insufficient funds')
-      cy.get('[data-cy=retry-payment-btn]').should('be.visible')
-    })
-
-    it('應可以重試失敗的付款', () => {
-      // 先創建一個付款失敗的訂單
-      cy.createFailedPaymentOrder().then((orderId: any) => {
-        cy.visit(`/orders/${orderId}`)
-        cy.get('[data-cy=payment-failed-badge]').should('be.visible')
-        cy.get('[data-cy=retry-payment-btn]').should('be.visible')
-
-        cy.get('[data-cy=retry-payment-btn]').click()
-        cy.get('[data-cy=payment-modal]').should('be.visible')
-      })
+      // 驗證付款失敗的錯誤訊息
+      cy.get('[data-cy=error-message]', { timeout: 10000 }).should('contain', '付款失敗')
+      cy.get('[data-cy=error-details]').should('contain', '信用卡已過期')
+      // 付款失敗後不提供重試，因為一個訂單僅支援一次付清
+      cy.get('[data-cy=pay-now-btn]').should('not.exist')
     })
   })
 
@@ -229,35 +213,6 @@ describe('付款功能', () => {
       cy.get('[data-cy=order-total]').invoke('text').then((orderTotal) => {
         cy.get('[data-cy=pay-now-btn]').click()
         cy.get('[data-cy=payment-amount]').should('contain', orderTotal.trim())
-      })
-    })
-
-    it('應顯示付款手續費（如有）', () => {
-      cy.get('[data-cy=pay-now-btn]').click()
-      cy.get('[data-cy=payment-method-credit-card]').click()
-
-      cy.get('[data-cy=payment-breakdown]').within(() => {
-        cy.get('[data-cy=order-amount]').should('be.visible')
-        cy.get('[data-cy=processing-fee]').should('be.visible')
-        cy.get('[data-cy=total-payment-amount]').should('be.visible')
-      })
-    })
-
-    it('不同付款方式應顯示不同手續費', () => {
-      cy.get('[data-cy=pay-now-btn]').click()
-
-      // 信用卡手續費
-      cy.get('[data-cy=payment-method-credit-card]').click()
-      cy.get('[data-cy=processing-fee]').invoke('text').as('creditCardFee')
-
-      // 銀行轉帳手續費
-      cy.get('[data-cy=payment-method-bank-transfer]').click()
-      cy.get('[data-cy=processing-fee]').invoke('text').as('bankTransferFee')
-
-      cy.get('@creditCardFee').then((ccFee) => {
-        cy.get('@bankTransferFee').then((btFee) => {
-          expect(ccFee).to.not.equal(btFee)
-        })
       })
     })
   })

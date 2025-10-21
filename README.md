@@ -49,8 +49,35 @@
 
 ## 測試
 
+### 後端單元測試與整合測試
+
 在 `backend` 目錄下執行：
 
 ```bash
 mvn test
 ```
+
+### E2E 測試 (Cypress)
+
+在 `cypress` 目錄下執行：
+
+```bash
+# 安裝依賴（首次執行）
+npm install
+
+# 執行所有 E2E 測試（headless 模式）
+npm test
+
+# 開啟 Cypress 測試介面（互動模式）
+npm run test:open
+
+# 使用 Chrome 瀏覽器執行測試
+npm run test:chrome
+
+# 執行測試並顯示瀏覽器畫面
+npm run test:headed
+```
+
+**注意**：執行 E2E 測試前，請確保前端和後端服務都已啟動：
+- 前端: http://localhost:5173
+- 後端: http://localhost:8080

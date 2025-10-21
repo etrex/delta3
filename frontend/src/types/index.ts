@@ -56,7 +56,12 @@ export interface Payment {
   status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED'
   transactionId?: string
   paidAt?: string
+  failureReason?: string
   createdAt?: string
+  // Credit card info for payment request
+  cardExpiry?: string
+  cardCvv?: string
+  cardName?: string
 }
 
 export interface CreateOrderRequest {

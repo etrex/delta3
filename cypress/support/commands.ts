@@ -77,8 +77,14 @@ declare global {
       /**
        * Custom command to fill credit card form
        * @example cy.fillCreditCardForm()
+       * @example cy.fillCreditCardForm({ cardExpiry: '01/20' })
        */
-      fillCreditCardForm(): Chainable
+      fillCreditCardForm(options?: {
+        cardNumber?: string
+        cardExpiry?: string
+        cardCvv?: string
+        cardName?: string
+      }): Chainable
 
       /**
        * Custom command to create a failed payment order
@@ -186,11 +192,18 @@ Cypress.Commands.add('createPaidOrder', () => {
 
   // 進行付款
   cy.get('[data-cy=pay-now-btn]').click()
-  cy.get('[data-cy=payment-method]').select('CREDIT_CARD')
+  cy.get('[data-cy=payment-method-credit-card]').click()
+
+  // 填寫信用卡資訊
+  cy.get('[data-cy=card-number]').type('4111111111111111')
+  cy.get('[data-cy=card-expiry]').type('12/25')
+  cy.get('[data-cy=card-cvv]').type('123')
+  cy.get('[data-cy=card-name]').type('Test User')
+
   cy.get('[data-cy=confirm-payment-btn]').click()
 
   // 驗證付款成功
-  cy.get('[data-cy=payment-success]').should('be.visible')
+  cy.get('[data-cy=success-message]', { timeout: 10000 }).should('contain', '付款成功')
   cy.get('[data-cy=order-status]').should('contain', '已付款')
 
   // 從 URL 取得訂單 ID
@@ -280,11 +293,18 @@ Cypress.Commands.add('createUnpaidOrder', () => {
 })
 
 // @ts-ignore
-Cypress.Commands.add('fillCreditCardForm', () => {
-  cy.get('[data-cy=card-number]').type('4111111111111111')
-  cy.get('[data-cy=card-expiry]').type('12/25')
-  cy.get('[data-cy=card-cvc]').type('123')
-  cy.get('[data-cy=card-name]').type('Test User')
+Cypress.Commands.add('fillCreditCardForm', (options = {}) => {
+  const {
+    cardNumber = '4111111111111111',
+    cardExpiry = '12/25',
+    cardCvv = '123',
+    cardName = 'Test User'
+  } = options
+
+  cy.get('[data-cy=card-number]').type(cardNumber)
+  cy.get('[data-cy=card-expiry]').type(cardExpiry)
+  cy.get('[data-cy=card-cvv]').type(cardCvv)
+  cy.get('[data-cy=card-name]').type(cardName)
 })
 
 // @ts-ignore
@@ -300,7 +320,7 @@ Cypress.Commands.add('createFailedPaymentOrder', () => {
     // 使用無效卡號
     cy.get('[data-cy=card-number]').type('4000000000000002') // 卡號會失敗
     cy.get('[data-cy=card-expiry]').type('12/25')
-    cy.get('[data-cy=card-cvc]').type('123')
+    cy.get('[data-cy=card-cvv]').type('123')
     cy.get('[data-cy=card-name]').type('Test User')
 
     cy.get('[data-cy=pay-btn]').click()

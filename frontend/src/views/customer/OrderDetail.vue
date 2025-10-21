@@ -274,8 +274,15 @@ async function processPayment() {
 
   try {
     const paymentData: Partial<Payment> = {
+      orderId: order.value.id!,
       paymentMethod: selectedPaymentMethod.value as any,
-      amount: order.value.totalAmount
+      amount: order.value.totalAmount,
+      // Include credit card info for payment processing
+      ...(selectedPaymentMethod.value === 'CREDIT_CARD' && {
+        cardExpiry: creditCardForm.value.cardExpiry,
+        cardCvv: creditCardForm.value.cardCvv,
+        cardName: creditCardForm.value.cardName
+      })
     }
 
     const response = await ordersApi.payOrder(order.value.id!, paymentData)
@@ -283,15 +290,27 @@ async function processPayment() {
     // Reload order to get updated status
     await loadOrder()
 
-    ElMessage.success('付款成功')
-    paymentModalVisible.value = false
-
-    if (selectedPaymentMethod.value === 'CASH') {
-      ElMessage.success('現金付款訂單已確認')
+    // 根據付款狀態顯示訊息
+    if (response.status === 'SUCCESS') {
+      ElMessage.success('付款成功')
+      successMessage.value = '付款成功'
+      paymentModalVisible.value = false
+    } else if (response.status === 'FAILED') {
+      // 付款失敗時關閉 modal 並顯示錯誤訊息
+      paymentModalVisible.value = false
+      errorMessage.value = '付款失敗'
+      errorDetails.value = response.failureReason || '此訂單付款已失敗，無法重新付款'
     }
   } catch (error: any) {
     console.error('Payment failed:', error)
 
+    // 關閉付款 modal
+    paymentModalVisible.value = false
+
+    // 重新載入訂單以更新付款狀態
+    await loadOrder()
+
+    // 顯示錯誤訊息
     if (error.response?.data?.message) {
       errorMessage.value = '付款失敗'
       errorDetails.value = error.response.data.message

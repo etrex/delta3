@@ -149,18 +149,6 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.orderNo").value("ORD-001"));
     }
 
-    @Test
-    void payOrder_Success() throws Exception {
-        // Given
-        when(orderService.initiatePayment(eq(1L), any(PaymentDTO.class))).thenReturn(testPayment);
-
-        // When & Then
-        mockMvc.perform(post("/api/orders/1/pay")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(testPayment)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
-    }
 
     @Test
     void cancelOrder_Success() throws Exception {

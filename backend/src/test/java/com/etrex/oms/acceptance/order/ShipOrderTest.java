@@ -3,7 +3,7 @@ package com.etrex.oms.acceptance.order;
 import com.etrex.oms.acceptance.BaseAcceptanceTest;
 import com.etrex.oms.dto.CreateOrderRequest;
 import com.etrex.oms.dto.OrderDTO;
-import com.etrex.oms.dto.PaymentDTO;
+import com.etrex.oms.dto.PaymentRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -39,11 +39,15 @@ public class ShipOrderTest extends BaseAcceptanceTest {
                 OrderDTO.class);
 
         // 付款
-        PaymentDTO paymentRequest = new PaymentDTO();
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.setOrderId(order.getId());
         paymentRequest.setPaymentMethod("CREDIT_CARD");
         paymentRequest.setAmount(order.getTotalAmount());
+        paymentRequest.setCardExpiry("12/25");
+        paymentRequest.setCardCvv("123");
+        paymentRequest.setCardName("Test User");
 
-        mockMvc.perform(post("/api/orders/" + order.getId() + "/pay")
+        mockMvc.perform(post("/api/orders/" + order.getId() + "/payments")
                 .header("Authorization", "Bearer " + customerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(paymentRequest)))

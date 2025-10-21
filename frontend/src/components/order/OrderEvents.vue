@@ -43,6 +43,7 @@ function getEventTypeLabel(eventType: string): string {
   const labels: Record<string, string> = {
     'CREATED': '訂單建立',
     'PAID': '付款完成',
+    'PAYMENT_FAILED': '付款失敗',
     'APPROVED': '訂單批准',
     'SHIPPED': '訂單出貨',
     'DELIVERED': '訂單送達',

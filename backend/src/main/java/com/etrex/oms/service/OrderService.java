@@ -166,54 +166,6 @@ public class OrderService {
         return orders.map(this::convertToDTO);
     }
 
-    public PaymentDTO initiatePayment(Long orderId, PaymentDTO paymentDTO) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-
-        if (order.getStatus() != Order.Status.CREATED) {
-            throw new BusinessException("Order cannot be paid in current status: " + order.getStatus());
-        }
-
-        Payment payment = new Payment();
-        payment.setOrder(order);
-        payment.setPaymentMethod(Payment.PaymentMethod.valueOf(paymentDTO.getPaymentMethod()));
-        payment.setAmount(order.getTotalAmount());
-        payment.setStatus(Payment.Status.SUCCESS); // For testing, directly set to SUCCESS
-        payment.setTransactionId(UUID.randomUUID().toString());
-        payment.setPaidAt(LocalDateTime.now()); // Set paid time
-
-        Payment savedPayment = paymentRepository.save(payment);
-
-        // Update order status to PAID
-        order.setStatus(Order.Status.PAID);
-        orderRepository.save(order);
-
-        createOrderEvent(order, "PAID", "Payment completed with method: " + paymentDTO.getPaymentMethod(), order.getCustomer());
-
-        return convertToPaymentDTO(savedPayment);
-    }
-
-    public PaymentDTO completePayment(Long orderId, String transactionId) {
-        Payment payment = paymentRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
-
-        if (payment.getStatus() != Payment.Status.PENDING) {
-            throw new BusinessException("Payment is not in pending status");
-        }
-
-        payment.setStatus(Payment.Status.SUCCESS);
-        payment.setPaidAt(LocalDateTime.now());
-        Payment savedPayment = paymentRepository.save(payment);
-
-        Order order = payment.getOrder();
-        order.setStatus(Order.Status.PAID);
-        orderRepository.save(order);
-
-        createOrderEvent(order, "PAID", "Payment completed successfully", order.getCustomer());
-
-        return convertToPaymentDTO(savedPayment);
-    }
-
     public OrderDTO cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));

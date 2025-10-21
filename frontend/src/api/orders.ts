@@ -18,7 +18,7 @@ export default {
   },
 
   payOrder(id: number, payment: Partial<Payment>) {
-    return axios.post(`/orders/${id}/pay`, payment)
+    return axios.post(`/orders/${id}/payments`, payment)
   },
 
   cancelOrder(id: number) {

@@ -37,7 +37,7 @@
     </div>
 
     <!-- 未付款顯示付款按鈕 (僅客戶端) -->
-    <div v-if="showPaymentButton && orderStatus === 'CREATED' && !hasSuccessfulPayment">
+    <div v-if="showPaymentButton && orderStatus === 'CREATED' && !hasSuccessfulPayment && !hasFailedPayment">
       <el-button
         type="primary"
         data-cy="pay-now-btn"
@@ -46,15 +46,10 @@
       >立即付款</el-button>
     </div>
 
-    <!-- 付款失敗顯示重試按鈕 (僅客戶端) -->
+    <!-- 付款失敗顯示訊息 (一個訂單僅支援一次付清，失敗後不可重試) -->
     <div v-if="showPaymentButton && hasFailedPayment">
       <el-tag type="danger" data-cy="payment-failed-badge">付款失敗</el-tag>
-      <el-button
-        type="warning"
-        data-cy="retry-payment-btn"
-        @click="$emit('pay')"
-        class="retry-btn"
-      >重試付款</el-button>
+      <div class="failed-notice">此訂單付款已失敗，無法重新付款</div>
     </div>
   </el-card>
 </template>
@@ -152,9 +147,17 @@ function getPaymentStatusType(status: string): string {
   margin-bottom: 12px;
 }
 
-.pay-btn,
-.retry-btn {
+.pay-btn {
   margin-top: 16px;
   width: 100%;
+}
+
+.failed-notice {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #fef0f0;
+  border-radius: 4px;
+  color: #f56c6c;
+  font-size: 14px;
 }
 </style>
