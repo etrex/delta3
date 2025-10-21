@@ -127,13 +127,17 @@ public class AdminChatController {
 
         User admin = (User) authentication.getPrincipal();
 
-        // Get AI response
+        // Get AI response to ensure data consistency
         ChatAiResponse aiResponse = chatAiResponseService.getById(request.getAiResponseId());
+
+        // Use sessionId and userId from aiResponse to prevent data inconsistency
+        String sessionId = aiResponse.getSessionId();
+        Long userId = aiResponse.getUserMessage().getUserId();
 
         // Save assistant message to chat history
         ChatHistory responseMessage = chatHistoryService.saveMessage(
-                request.getSessionId(),
-                request.getUserId(),
+                sessionId,
+                userId,
                 ChatHistory.Role.ASSISTANT.name(),
                 request.getText()
         );
@@ -147,7 +151,7 @@ public class AdminChatController {
 
         // Notify user via WebSocket
         chatNotificationService.notifyUser(
-                request.getUserId(),
+                userId,
                 "ai_approved",
                 request.getText(),
                 responseMessage.getId()
@@ -155,14 +159,14 @@ public class AdminChatController {
 
         // Notify admins monitoring this session
         chatNotificationService.notifySessionUpdate(
-                request.getSessionId(),
+                sessionId,
                 "admin_reply",
                 request.getText(),
                 responseMessage.getId()
         );
 
         log.info("Admin {} approved AI suggestion {} and sent to user {}",
-                admin.getUsername(), request.getAiResponseId(), request.getUserId());
+                admin.getUsername(), request.getAiResponseId(), userId);
 
         return ResponseEntity.ok(Map.of("status", "success"));
     }
@@ -178,10 +182,17 @@ public class AdminChatController {
 
         User admin = (User) authentication.getPrincipal();
 
+        // Get AI response to ensure data consistency
+        ChatAiResponse aiResponse = chatAiResponseService.getById(request.getAiResponseId());
+
+        // Use sessionId and userId from aiResponse to prevent data inconsistency
+        String sessionId = aiResponse.getSessionId();
+        Long userId = aiResponse.getUserMessage().getUserId();
+
         // Save assistant message to chat history
         ChatHistory responseMessage = chatHistoryService.saveMessage(
-                request.getSessionId(),
-                request.getUserId(),
+                sessionId,
+                userId,
                 ChatHistory.Role.ASSISTANT.name(),
                 request.getText()
         );
@@ -196,7 +207,7 @@ public class AdminChatController {
 
         // Notify user via WebSocket
         chatNotificationService.notifyUser(
-                request.getUserId(),
+                userId,
                 "admin",
                 request.getText(),
                 responseMessage.getId()
@@ -204,14 +215,14 @@ public class AdminChatController {
 
         // Notify admins monitoring this session
         chatNotificationService.notifySessionUpdate(
-                request.getSessionId(),
+                sessionId,
                 "admin_reply",
                 request.getText(),
                 responseMessage.getId()
         );
 
         log.info("Admin {} modified AI suggestion {} and sent to user {}",
-                admin.getUsername(), request.getAiResponseId(), request.getUserId());
+                admin.getUsername(), request.getAiResponseId(), userId);
 
         return ResponseEntity.ok(Map.of("status", "success"));
     }
@@ -227,10 +238,17 @@ public class AdminChatController {
 
         User admin = (User) authentication.getPrincipal();
 
+        // Get AI response to ensure data consistency
+        ChatAiResponse aiResponse = chatAiResponseService.getById(request.getAiResponseId());
+
+        // Use sessionId and userId from aiResponse to prevent data inconsistency
+        String sessionId = aiResponse.getSessionId();
+        Long userId = aiResponse.getUserMessage().getUserId();
+
         // Save assistant message to chat history
         ChatHistory responseMessage = chatHistoryService.saveMessage(
-                request.getSessionId(),
-                request.getUserId(),
+                sessionId,
+                userId,
                 ChatHistory.Role.ASSISTANT.name(),
                 request.getText()
         );
@@ -245,7 +263,7 @@ public class AdminChatController {
 
         // Notify user via WebSocket
         chatNotificationService.notifyUser(
-                request.getUserId(),
+                userId,
                 "admin",
                 request.getText(),
                 responseMessage.getId()
@@ -253,14 +271,14 @@ public class AdminChatController {
 
         // Notify admins monitoring this session
         chatNotificationService.notifySessionUpdate(
-                request.getSessionId(),
+                sessionId,
                 "admin_reply",
                 request.getText(),
                 responseMessage.getId()
         );
 
         log.info("Admin {} rejected AI suggestion {} and sent manual reply to user {}",
-                admin.getUsername(), request.getAiResponseId(), request.getUserId());
+                admin.getUsername(), request.getAiResponseId(), userId);
 
         return ResponseEntity.ok(Map.of("status", "success"));
     }

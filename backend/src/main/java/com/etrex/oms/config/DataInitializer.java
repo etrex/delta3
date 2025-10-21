@@ -3,9 +3,7 @@
  */
 package com.etrex.oms.config;
 
-import com.etrex.oms.entity.Product;
 import com.etrex.oms.entity.User;
-import com.etrex.oms.repository.ProductRepository;
 import com.etrex.oms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer {
-    private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 

@@ -8,7 +8,6 @@ import com.etrex.oms.entity.User;
 import com.etrex.oms.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.Data;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;

@@ -4,7 +4,6 @@
 package com.etrex.oms.config;
 
 import com.etrex.oms.service.ToolCallCollector;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequest;

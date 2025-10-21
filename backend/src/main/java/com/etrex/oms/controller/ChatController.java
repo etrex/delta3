@@ -18,7 +18,6 @@ import com.etrex.oms.service.ChatContextService;
 import com.etrex.oms.service.ChatNotificationService;
 import com.etrex.oms.service.ConfidenceEvaluator;
 import com.etrex.oms.service.ToolCallCollector;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,7 +29,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
