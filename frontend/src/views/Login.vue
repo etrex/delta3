@@ -8,24 +8,24 @@
         <h2>Order Management System</h2>
       </template>
 
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" data-cy="login-form">
         <el-form-item label="Role" prop="role">
-          <el-radio-group v-model="form.role">
-            <el-radio label="CUSTOMER">Customer</el-radio>
-            <el-radio label="ADMIN">Admin</el-radio>
+          <el-radio-group v-model="form.role" data-cy="role-selector">
+            <el-radio label="CUSTOMER" data-cy="role-customer">Customer</el-radio>
+            <el-radio label="ADMIN" data-cy="role-admin">Admin</el-radio>
           </el-radio-group>
         </el-form-item>
 
         <el-form-item label="Username" prop="username">
-          <el-input v-model="form.username" placeholder="Enter username" />
+          <el-input v-model="form.username" placeholder="Enter username" data-cy="username" />
         </el-form-item>
 
         <el-form-item label="Password" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="Enter password" show-password />
+          <el-input v-model="form.password" type="password" placeholder="Enter password" show-password data-cy="password" />
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="handleLogin" :loading="loading">Login</el-button>
+          <el-button type="primary" @click="handleLogin" :loading="loading" data-cy="login-btn">Login</el-button>
           <el-button @click="fillTestAccount">Use Test Account</el-button>
         </el-form-item>
       </el-form>

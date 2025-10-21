@@ -11,11 +11,13 @@ import com.etrex.oms.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,22 +90,79 @@ public class OrderService {
     }
 
     public Page<OrderDTO> getOrders(Long customerId, String status, Pageable pageable) {
-        Page<Order> orders;
+        return getOrders(customerId, status, null, null, null, pageable);
+    }
 
-        if (customerId != null && status != null) {
-            User customer = userRepository.findById(customerId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-            orders = orderRepository.findByCustomerAndStatus(customer, Order.Status.valueOf(status), pageable);
-        } else if (customerId != null) {
-            User customer = userRepository.findById(customerId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-            orders = orderRepository.findByCustomer(customer, pageable);
-        } else if (status != null) {
-            orders = orderRepository.findByStatus(Order.Status.valueOf(status), pageable);
-        } else {
-            orders = orderRepository.findAll(pageable);
-        }
+    public Page<OrderDTO> getOrders(Long customerId, String status, String keyword,
+                                     LocalDateTime startDate, LocalDateTime endDate,
+                                     Pageable pageable) {
+        Specification<Order> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
+            // Add distinct to avoid duplicates from JOIN (only for non-count queries)
+            if (query != null && Long.class != query.getResultType()) {
+                query.distinct(true);
+            }
+
+            // Filter by customer
+            if (customerId != null) {
+                User customer = userRepository.findById(customerId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+                predicates.add(criteriaBuilder.equal(root.get("customer"), customer));
+            }
+
+            // Filter by status
+            if (status != null && !status.isBlank()) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), Order.Status.valueOf(status)));
+            }
+
+            // Search by keyword (order ID, customer username, order number, or product name)
+            if (keyword != null && !keyword.isBlank()) {
+                String searchPattern = "%" + keyword.toLowerCase() + "%";
+
+                List<Predicate> keywordPredicates = new ArrayList<>();
+
+                // Order ID search - convert Long to String
+                keywordPredicates.add(criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("id").as(String.class)),
+                    searchPattern
+                ));
+
+                // Customer name search
+                keywordPredicates.add(criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("customer").get("username")),
+                    searchPattern
+                ));
+
+                // Order number search
+                keywordPredicates.add(criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("orderNo")),
+                    searchPattern
+                ));
+
+                // Product name search (JOIN with items and products)
+                jakarta.persistence.criteria.Join<Object, Object> itemsJoin = root.join("items", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Join<Object, Object> productJoin = itemsJoin.join("product", jakarta.persistence.criteria.JoinType.LEFT);
+                keywordPredicates.add(criteriaBuilder.like(
+                    criteriaBuilder.lower(productJoin.get("name")),
+                    searchPattern
+                ));
+
+                predicates.add(criteriaBuilder.or(keywordPredicates.toArray(new Predicate[0])));
+            }
+
+            // Filter by date range
+            if (startDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), endDate));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Order> orders = orderRepository.findAll(spec, pageable);
         return orders.map(this::convertToDTO);
     }
 

@@ -8,11 +8,11 @@
       返回商品列表
     </el-button>
 
-    <el-card v-if="product" class="product-detail-card">
+    <el-card v-if="product" class="product-detail-card" data-cy="product-detail-card">
       <div class="product-detail">
         <!-- 商品圖片區域 (預留) -->
         <div class="product-image-section">
-          <div class="product-image-placeholder">
+          <div class="product-image-placeholder" data-cy="product-image">
             <el-icon :size="80"><Picture /></el-icon>
             <p>{{ product.name }}</p>
           </div>
@@ -20,17 +20,17 @@
 
         <!-- 商品資訊區域 -->
         <div class="product-info-section">
-          <h1 class="product-title">{{ product.name }}</h1>
+          <h1 class="product-title" data-cy="product-name">{{ product.name }}</h1>
 
           <div class="product-price-section">
-            <span class="product-price">${{ product.price.toFixed(0) }}</span>
+            <span class="product-price" data-cy="product-price">${{ product.price.toFixed(0) }}</span>
           </div>
 
           <el-divider />
 
           <div class="product-description-section">
             <h3>商品描述</h3>
-            <p class="product-description">{{ product.description }}</p>
+            <p class="product-description" data-cy="product-description">{{ product.description }}</p>
           </div>
 
           <el-divider />
@@ -39,6 +39,7 @@
             <span class="stock-label">庫存狀態：</span>
             <span
               :class="['stock-status', product.stock > 0 ? 'in-stock' : 'out-of-stock']"
+              data-cy="product-stock"
             >
               {{ product.stock > 0 ? `有貨 (${product.stock} 件)` : '缺貨' }}
             </span>
@@ -55,6 +56,7 @@
                 :min="1"
                 :max="product.stock"
                 :disabled="product.stock === 0"
+                data-cy="quantity-input"
               />
             </div>
 
@@ -66,6 +68,7 @@
                 @click="addToCart"
                 :loading="isAdding"
                 class="add-to-cart-btn"
+                data-cy="add-to-cart-btn"
               >
                 <el-icon><ShoppingCart /></el-icon>
                 加入購物車

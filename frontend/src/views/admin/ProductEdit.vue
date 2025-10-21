@@ -9,9 +9,9 @@
     </div>
 
     <el-card>
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" data-cy="product-form">
         <el-form-item label="商品名稱" prop="name">
-          <el-input v-model="form.name" placeholder="請輸入商品名稱" />
+          <el-input v-model="form.name" placeholder="請輸入商品名稱" data-cy="product-name-input" />
         </el-form-item>
 
         <el-form-item label="商品描述" prop="description">
@@ -20,6 +20,7 @@
             type="textarea"
             :rows="3"
             placeholder="請輸入商品描述"
+            data-cy="product-description-input"
           />
         </el-form-item>
 
@@ -30,6 +31,7 @@
             :precision="0"
             :step="1"
             placeholder="請輸入價格"
+            data-cy="product-price-input"
           />
         </el-form-item>
 
@@ -38,19 +40,20 @@
             v-model="form.stock"
             :min="0"
             placeholder="請輸入庫存"
+            data-cy="product-stock-input"
           />
         </el-form-item>
 
         <el-form-item label="狀態" prop="status">
-          <el-select v-model="form.status" placeholder="請選擇狀態">
+          <el-select v-model="form.status" placeholder="請選擇狀態" data-cy="product-status-select">
             <el-option label="上架" value="ACTIVE" />
             <el-option label="下架" value="INACTIVE" />
           </el-select>
         </el-form-item>
 
         <el-form-item>
-          <el-button @click="goBack">取消</el-button>
-          <el-button type="primary" :loading="isSubmitting" @click="handleSubmit">
+          <el-button @click="goBack" data-cy="cancel-btn">取消</el-button>
+          <el-button type="primary" :loading="isSubmitting" @click="handleSubmit" data-cy="save-product-btn">
             確認
           </el-button>
         </el-form-item>
@@ -152,7 +155,12 @@ async function handleSubmit() {
       router.back()
     } else {
       await productsApi.createProduct(productData)
-      ElMessage.success('商品新增成功')
+      ElMessage({
+        type: 'success',
+        message: '商品已成功創建',
+        customClass: 'success-message',
+        grouping: true
+      })
       // 新增模式保存後跳回商品列表
       router.push('/admin/products')
     }

@@ -110,8 +110,7 @@ declare global {
 // @ts-ignore
 Cypress.Commands.add('loginAsCustomer', () => {
   cy.visit('/login')
-  cy.get('[data-cy=role-selector]').click()
-  cy.get('.el-select-dropdown__item').contains('Customer').click()
+  // Customer is selected by default, no need to change role
   cy.get('[data-cy=username]').type('customer1')
   cy.get('[data-cy=password]').type('password123')
   cy.get('[data-cy=login-btn]').click()
@@ -125,8 +124,8 @@ Cypress.Commands.add('loginAsCustomer', () => {
 // @ts-ignore
 Cypress.Commands.add('loginAsAdmin', () => {
   cy.visit('/login')
-  cy.get('[data-cy=role-selector]').click()
-  cy.get('.el-select-dropdown__item').contains('Admin').click()
+  // Select Admin role
+  cy.get('[data-cy=role-admin]').click()
   cy.get('[data-cy=username]').type('admin')
   cy.get('[data-cy=password]').type('password123')
   cy.get('[data-cy=login-btn]').click()
@@ -139,34 +138,32 @@ Cypress.Commands.add('loginAsAdmin', () => {
 
 // @ts-ignore
 Cypress.Commands.add('addProductToCart', (productName: string, quantity: number) => {
-  // Only visit if not already on products page
-  cy.url().then(url => {
-    if (!url.includes('/products')) {
-      cy.visit('/products')
-    }
-  })
+  // Always visit products page to ensure we start fresh
+  cy.visit('/products')
 
-  // Wait for products to load
-  cy.get('[data-cy=product-card]').should('have.length.at.least', 1)
+  // Wait for products to load with longer timeout
+  cy.get('[data-cy=product-card]', { timeout: 10000 }).should('have.length.at.least', 1)
 
-  // Find the product card containing the product name and click add to cart
+  // Find and click the product card to enter detail page
   cy.get('[data-cy=product-card]')
     .filter(`:contains("${productName}")`)
     .first()
-    .within(() => {
-      cy.get('[data-cy=add-to-cart-btn]').click()
-    })
+    .click()
 
-  // Fill in quantity and confirm
-  cy.get('[data-cy=quantity-modal]').should('be.visible')
-  cy.get('[data-cy=quantity-input]').clear().type(quantity.toString())
-  cy.get('[data-cy=confirm-add-btn]').click()
+  // Wait for product detail page to load
+  cy.get('[data-cy=product-detail-card]').should('be.visible')
 
-  // Wait for success message to appear
-  cy.get('[data-cy=success-message]').should('be.visible').should('contain', '已加入購物車')
+  // Fill in quantity
+  cy.get('[data-cy=quantity-input]').find('input').clear().type(quantity.toString())
 
-  // Wait for modal to close
-  cy.get('[data-cy=quantity-modal]').should('not.be.visible')
+  // Click add to cart button
+  cy.get('[data-cy=add-to-cart-btn]').click()
+
+  // Wait for success message
+  cy.contains('已將').should('be.visible')
+
+  // Go back to products page
+  cy.visit('/products')
 })
 
 // @ts-ignore
@@ -182,8 +179,7 @@ Cypress.Commands.add('createPaidOrder', () => {
   cy.addProductToCart('測試商品1', 1)
 
   // 前往結帳
-  cy.visit('/cart')
-  cy.get('[data-cy=checkout-btn]').click()
+  cy.visit('/checkout')
 
   // 確認訂單
   cy.get('[data-cy=confirm-order-btn]').click()
@@ -195,7 +191,14 @@ Cypress.Commands.add('createPaidOrder', () => {
 
   // 驗證付款成功
   cy.get('[data-cy=payment-success]').should('be.visible')
-  cy.get('[data-cy=order-status]').should('contain', 'PAID')
+  cy.get('[data-cy=order-status]').should('contain', '已付款')
+
+  // 從 URL 取得訂單 ID
+  cy.url().should('match', /\/orders\/\d+/)
+  cy.url().then((url) => {
+    const orderId = url.match(/\/orders\/(\d+)/)?.[1]
+    return cy.wrap(orderId)
+  })
 })
 
 // @ts-ignore
@@ -203,8 +206,11 @@ Cypress.Commands.add('createShippedOrder', () => {
   // 先建立已付款訂單
   cy.createPaidOrder()
 
-  // 取得訂單 ID
-  cy.get('[data-cy=order-id]').invoke('text').as('shippedOrderId')
+  // 從 URL 取得訂單 ID
+  cy.url().then((url) => {
+    const orderId = url.match(/\/orders\/(\d+)/)?.[1]
+    cy.wrap(orderId).as('shippedOrderId')
+  })
 
   // 切換到管理員身分
   cy.logout()
@@ -219,7 +225,7 @@ Cypress.Commands.add('createShippedOrder', () => {
       cy.get('[data-cy=ship-order-btn]').click()
     })
     cy.get('[data-cy=confirm-ship-btn]').click()
-    cy.get('[data-cy=order-status]').should('contain', 'SHIPPED')
+    cy.get('[data-cy=order-status]').should('contain', '已出貨')
 
     // 返回訂單 ID
     return cy.wrap(orderId)
@@ -258,14 +264,17 @@ Cypress.Commands.add('createUnpaidOrder', () => {
   cy.addProductToCart('測試商品1', 1)
 
   // 前往結帳
-  cy.visit('/cart')
-  cy.get('[data-cy=checkout-btn]').click()
+  cy.visit('/checkout')
 
   // 確認訂單但不付款
   cy.get('[data-cy=confirm-order-btn]').click()
 
-  // 取得訂單 ID
-  cy.get('[data-cy=order-id]').invoke('text').then((orderId) => {
+  // 等待跳轉到訂單詳情頁
+  cy.url().should('match', /\/orders\/\d+/)
+
+  // 從 URL 取得訂單 ID
+  cy.url().then((url) => {
+    const orderId = url.match(/\/orders\/(\d+)/)?.[1]
     return cy.wrap(orderId)
   })
 })

@@ -45,36 +45,49 @@ describe('訂單建立範例（使用新的資料管理方式）', () => {
 
   it('應可以將商品加入購物車', () => {
     cy.visit('/products')
-    
+
     // 現在商品應該出現了！
     cy.get('[data-cy=product-card]').should('have.length', 3)
-    
-    cy.get('[data-cy=product-card]').first().within(() => {
-      cy.get('[data-cy=product-name]').should('contain', '測試商品1')
-      cy.get('[data-cy=add-to-cart-btn]').click()
-    })
 
-    cy.get('[data-cy=quantity-modal]').should('be.visible')
-    cy.get('[data-cy=quantity-input]').clear().type('2')
-    cy.get('[data-cy=confirm-add-btn]').click()
+    // 點擊商品卡片進入商品詳情頁面（會導航到 /products/{id}）
+    cy.get('[data-cy=product-card]').first().click()
 
-    cy.get('[data-cy=success-message]').should('contain', '已加入購物車')
-    cy.get('[data-cy=cart-count]').should('contain', '2')
+    // 等待商品詳情頁面載入
+    cy.url().should('match', /\/products\/\d+/)
+    cy.get('[data-cy=product-detail-card]').should('be.visible')
+    cy.get('[data-cy=product-name]').should('contain', '測試商品1')
+
+    // 設定數量並加入購物車
+    cy.get('[data-cy=quantity-input]').find('input').clear().type('2')
+    cy.get('[data-cy=add-to-cart-btn]').click()
+
+    // 驗證成功訊息
+    cy.contains('已將').should('be.visible')
   })
 
-  it('應檢查庫存限制', () => {
+  it('應將超過庫存的數量自動修正為最大值', () => {
     cy.visit('/products')
-    
-    // 找到庫存只有 5 的商品
-    cy.get('[data-cy=product-card]').contains('庫存少的商品').parent().within(() => {
-      cy.get('[data-cy=product-stock]').should('contain', '5')
-      cy.get('[data-cy=add-to-cart-btn]').click()
-    })
 
-    cy.get('[data-cy=quantity-input]').clear().type('10')
-    cy.get('[data-cy=confirm-add-btn]').click()
+    // 找到庫存只有 5 的商品並點擊進入商品詳情頁面
+    cy.get('[data-cy=product-card]').contains('庫存少的商品').click()
 
-    cy.get('[data-cy=error-message]').should('contain', '超過可用庫存')
+    // 等待商品詳情頁面載入
+    cy.url().should('match', /\/products\/\d+/)
+    cy.get('[data-cy=product-detail-card]').should('be.visible')
+    cy.get('[data-cy=product-stock]').should('contain', '5')
+
+    // 嘗試輸入超過庫存的數量（10）
+    cy.get('[data-cy=quantity-input]').find('input').clear().type('10')
+
+    // 失焦後，input-number 會自動將值修正為最大值（5）
+    cy.get('[data-cy=quantity-input]').find('input').blur()
+
+    // 驗證數量已被自動修正為 5
+    cy.get('[data-cy=quantity-input]').find('input').should('have.value', '5')
+
+    // 驗證可以成功加入購物車（因為數量已被修正為合法範圍）
+    cy.get('[data-cy=add-to-cart-btn]').click()
+    cy.contains('已將').should('be.visible')
   })
 })
 

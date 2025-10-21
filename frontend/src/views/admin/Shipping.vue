@@ -124,7 +124,7 @@
 
           <el-table-column label="訂單資訊" min-width="400">
             <template #default="scope">
-              <div class="order-info" data-cy="order-row" @click="navigateToOrderDetail(scope.row)">
+              <div class="order-info" :data-cy="`order-${scope.row.id}`" @click="navigateToOrderDetail(scope.row)">
                 <div class="order-main-info">
                   <span class="order-id" data-cy="order-id">{{ scope.row.orderNo }}</span>
                   <span class="customer-name" data-cy="customer-name">{{ scope.row.customerName || '未知客戶' }}</span>
@@ -167,7 +167,7 @@
                 v-if="scope.row.status !== 'SHIPPED' && scope.row.status !== 'CANCELLED'"
                 size="small"
                 type="primary"
-                data-cy="next-status-btn"
+                :data-cy="`ship-btn-${scope.row.id}`"
                 @click.stop="updateShippingStatusDirectly(scope.row)"
               >
                 → {{ getNextStatusLabel(scope.row.status) }}

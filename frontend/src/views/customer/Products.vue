@@ -2,7 +2,7 @@
   <div class="products-container">
     <h1>商品列表</h1>
 
-    <div class="products-grid">
+    <div class="products-grid" data-cy="product-list">
       <el-card
         v-for="product in products"
         :key="product.id"
@@ -10,9 +10,12 @@
         data-cy="product-card"
         @click="viewProductDetail(product.id)"
       >
+        <div class="product-image-placeholder" data-cy="product-image">
+          <el-icon :size="40"><Picture /></el-icon>
+        </div>
         <div class="product-info">
           <h3 class="product-name" data-cy="product-name">{{ product.name }}</h3>
-          <p class="product-description">{{ product.description }}</p>
+          <p class="product-description" data-cy="product-description">{{ product.description }}</p>
           <div class="product-price" data-cy="product-price">${{ product.price.toFixed(0) }}</div>
           <div class="product-stock" data-cy="product-stock">庫存: {{ product.stock }}</div>
         </div>
@@ -25,6 +28,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
 import productsApi from '@/api/products'
 import type { Product } from '@/types'
 
@@ -108,5 +112,18 @@ h1 {
 .product-stock {
   font-size: 14px;
   color: #909399;
+}
+
+.product-image-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #f5f7fa;
+  border: 2px dashed #dcdfe6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  margin-bottom: 12px;
 }
 </style>

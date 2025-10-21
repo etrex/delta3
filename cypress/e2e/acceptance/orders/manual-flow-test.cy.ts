@@ -25,19 +25,14 @@ describe('完整訂單流程測試', () => {
     // 1. 加入購物車
     cy.addProductToCart('流程測試商品', 2)
 
-    // 2. 前往購物車
-    cy.visit('/cart')
+    // 2. 前往結帳頁面
+    cy.visit('/checkout')
 
-    // 驗證購物車有商品
-    cy.get('[data-cy=cart-items]').should('be.visible')
-    cy.get('[data-cy=cart-total]').should('contain', '200.00')
+    // 驗證結帳頁面有商品
+    cy.get('[data-cy=order-items]').should('be.visible')
+    cy.get('[data-cy=total-amount]').should('contain', '200')
 
-    // 3. 結帳
-    cy.get('[data-cy=checkout-btn]').should('not.be.disabled')
-    cy.get('[data-cy=checkout-btn]').click()
-
-    // 4. 確認訂單
-    cy.url().should('include', '/checkout')
+    // 3. 確認訂單
     cy.get('[data-cy=order-summary]').should('be.visible')
     cy.get('[data-cy=confirm-order-btn]').click()
 
@@ -62,7 +57,7 @@ describe('完整訂單流程測試', () => {
 
     // 7. 驗證付款成功
     cy.get('[data-cy=payment-completed-badge]', { timeout: 10000 }).should('be.visible')
-    cy.get('[data-cy=order-status]').should('contain', 'PAID')
+    cy.get('[data-cy=order-status]').should('contain', '已付款')
 
     // 8. 記錄訂單號
     cy.get('[data-cy=order-id]').invoke('text').then((orderIdText) => {
@@ -80,7 +75,7 @@ describe('完整訂單流程測試', () => {
       cy.get(`[data-cy=ship-btn-${orderId}]`).click()
 
       // 12. 驗證出貨成功
-      cy.get('[data-cy=shipping-success-message]').should('be.visible')
+      cy.get('[data-cy=success-message]').should('be.visible')
     })
   })
 })

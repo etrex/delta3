@@ -6,7 +6,7 @@
     <div class="search-filters" data-cy="search-filters">
       <el-input
         v-model="searchKeyword"
-        placeholder="搜尋訂單號碼"
+        placeholder="搜尋訂單號碼、客戶名稱或商品名稱"
         data-cy="search-input"
         class="search-input"
         clearable
@@ -174,6 +174,17 @@ async function loadOrders() {
 
     if (selectedStatus.value) {
       params.status = selectedStatus.value
+    }
+
+    // Add search keyword
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+
+    // Add date range
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0].toISOString()
+      params.endDate = dateRange.value[1].toISOString()
     }
 
     const data = await ordersApi.getOrders(params)

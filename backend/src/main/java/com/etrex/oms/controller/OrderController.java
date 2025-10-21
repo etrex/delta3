@@ -36,10 +36,13 @@ public class OrderController {
     public ResponseEntity<Page<OrderDTO>> getOrders(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) LocalDateTime startDate,
+            @RequestParam(required = false) LocalDateTime endDate,
             @RequestParam(defaultValue = "true") boolean tracking,
             @RequestParam(required = false) String context,
             Pageable pageable) {
-        Page<OrderDTO> result = orderService.getOrders(customerId, status, pageable);
+        Page<OrderDTO> result = orderService.getOrders(customerId, status, keyword, startDate, endDate, pageable);
 
         // Track operation only if tracking=true
         if (tracking && context != null) {

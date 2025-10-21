@@ -9,18 +9,30 @@
     </div>
 
     <!-- 商品列表 -->
-    <el-table :data="products" stripe style="width: 100%">
-      <el-table-column prop="id" label="商品編號" width="100" />
-      <el-table-column prop="name" label="商品名稱" />
-      <el-table-column prop="price" label="價格" width="120">
+    <el-table :data="products" stripe style="width: 100%" data-cy="product-list">
+      <el-table-column prop="id" label="商品編號" width="100">
         <template #default="{ row }">
-          ${{ row.price.toFixed(0) }}
+          <span data-cy="product-id">{{ row.id }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="stock" label="庫存" width="100" />
+      <el-table-column prop="name" label="商品名稱">
+        <template #default="{ row }">
+          <span data-cy="product-name">{{ row.name }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="price" label="價格" width="120">
+        <template #default="{ row }">
+          <span data-cy="product-price">${{ row.price.toFixed(0) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="stock" label="庫存" width="100">
+        <template #default="{ row }">
+          <span data-cy="product-stock">{{ row.stock }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="狀態" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">
+          <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" data-cy="product-status">
             {{ row.status === 'ACTIVE' ? '上架' : '下架' }}
           </el-tag>
         </template>
@@ -28,11 +40,12 @@
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="viewProduct(row)">查看</el-button>
-          <el-button size="small" type="primary" @click="editProduct(row)">編輯</el-button>
+          <el-button size="small" type="primary" @click="editProduct(row)" data-cy="edit-product-btn">編輯</el-button>
           <el-button
             size="small"
             type="primary"
             @click="toggleStatus(row)"
+            data-cy="toggle-status-btn"
           >
             {{ row.status === 'ACTIVE' ? '下架' : '上架' }}
           </el-button>
@@ -85,12 +98,15 @@ async function toggleStatus(product: Product) {
 
   try {
     await ElMessageBox.confirm(
-      `確定要${action}商品「${product.name}」嗎？`,
+      `確定要${action}此商品嗎？`,
       '確認',
       {
         confirmButtonText: '確認',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
+        customClass: 'confirm-dialog',
+        confirmButtonClass: 'confirm-btn',
+        cancelButtonClass: 'cancel-btn'
       }
     )
 
@@ -101,7 +117,12 @@ async function toggleStatus(product: Product) {
       status: newStatus
     })
 
-    ElMessage.success(`${action}成功`)
+    ElMessage({
+      type: 'success',
+      message: `商品已${action}`,
+      customClass: 'success-message',
+      grouping: true
+    })
     await loadProducts()
   } catch (error: any) {
     if (error !== 'cancel') {

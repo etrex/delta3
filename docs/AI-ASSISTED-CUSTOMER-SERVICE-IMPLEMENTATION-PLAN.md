@@ -1325,33 +1325,6 @@ if (action.actionType === 'navigate') {
 
 ---
 
-#### 2. 開啟 Modal（open_modal）
-
-**用途**：開啟指定的 Modal 對話框
-
-```java
-FrontendAction.builder()
-    .actionType("open_modal")
-    .params(Map.of(
-        "modalId", "product-detail-modal",
-        "data", Map.of("productId", 123)
-    ))
-    .build()
-```
-
-**前端執行**：
-```typescript
-if (action.actionType === 'open_modal') {
-  const modalId = action.params.modalId
-  const data = action.params.data
-
-  // 使用 Vue 的 provide/inject 或 EventBus
-  eventBus.emit('open-modal', { modalId, data })
-}
-```
-
----
-
 #### 3. 滾動到元素（scroll_to）
 
 **用途**：滾動頁面到指定元素

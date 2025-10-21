@@ -10,13 +10,13 @@
           <router-link to="/admin/dashboard" class="nav-link">
             總覽
           </router-link>
-          <router-link to="/admin/products" class="nav-link">
+          <router-link to="/admin/products" class="nav-link" data-cy="menu-product-management">
             商品管理
           </router-link>
-          <router-link to="/admin/orders" class="nav-link">
+          <router-link to="/admin/orders" class="nav-link" data-cy="menu-all-orders">
             訂單管理
           </router-link>
-          <router-link to="/admin/shipping" class="nav-link">
+          <router-link to="/admin/shipping" class="nav-link" data-cy="menu-shipping-management">
             出貨管理
           </router-link>
           <router-link to="/admin/chat" class="nav-link">
@@ -25,9 +25,13 @@
           <router-link to="/admin/faqs" class="nav-link">
             FAQ 管理
           </router-link>
+          <router-link to="/products" class="nav-link" data-cy="menu-products">
+            商品列表
+          </router-link>
 
-          <span class="username">{{ authStore.user?.username }}</span>
-          <el-button @click="handleLogout" size="small">登出</el-button>
+          <span class="username" data-cy="username-display">{{ authStore.user?.username }}</span>
+          <span class="user-role" data-cy="user-role">Admin</span>
+          <el-button data-cy="logout-btn" @click="handleLogout" size="small">登出</el-button>
         </div>
       </div>
     </el-header>

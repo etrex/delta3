@@ -8,7 +8,7 @@
     </template>
     <div class="summary-row">
       <span>商品總計</span>
-      <span data-cy="subtotal">${{ totalAmount?.toFixed(0) }}</span>
+      <span data-cy="items-total">${{ totalAmount?.toFixed(0) }}</span>
     </div>
     <div class="summary-row">
       <span>運費</span>

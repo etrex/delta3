@@ -22,7 +22,7 @@
       >
         <div data-cy="payment-method">付款方式: {{ getPaymentMethodLabel(payment.paymentMethod) }}</div>
         <div data-cy="payment-amount">金額: ${{ payment.amount?.toFixed(0) }}</div>
-        <div data-cy="payment-date">時間: {{ formatDateTime(payment.paidAt) }}</div>
+        <div data-cy="paid-date">時間: {{ formatDateTime(payment.paidAt) }}</div>
         <div v-if="payment.transactionId" data-cy="transaction-id">
           交易號: {{ payment.transactionId }}
         </div>

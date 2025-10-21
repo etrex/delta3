@@ -7,24 +7,25 @@
       <div class="header-content">
         <h2 class="site-title" @click="goToHome">卡米購</h2>
         <div class="header-actions">
-          <router-link to="/products" class="nav-link">
+          <router-link to="/products" class="nav-link" data-cy="menu-products">
             商品列表
           </router-link>
-          <router-link to="/orders" class="nav-link">
+          <router-link to="/orders" class="nav-link" data-cy="menu-orders">
             我的訂單
           </router-link>
           <router-link to="/faqs" class="nav-link">
             常見問題
           </router-link>
 
-          <div class="cart-icon" data-cy="cart-icon" @click="showCartDrawer">
+          <div class="cart-icon" data-cy="menu-cart" @click="showCartDrawer">
             <el-badge :value="totalItems" :hidden="totalItems === 0">
               <el-icon :size="24"><ShoppingCart /></el-icon>
             </el-badge>
             <span data-cy="cart-count" class="cart-count-text">{{ totalItems }}</span>
           </div>
 
-          <span class="username">{{ authStore.user?.username }}</span>
+          <span class="username" data-cy="username-display">{{ authStore.user?.username }}</span>
+          <span class="user-role" data-cy="user-role">Customer</span>
           <el-button data-cy="logout-btn" @click="handleLogout" size="small">登出</el-button>
         </div>
       </div>
