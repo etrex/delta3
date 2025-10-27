@@ -75,7 +75,10 @@
                   </el-tag>
                   <span class="message-time">{{ formatDateTime(msg.createdAt) }}</span>
                 </div>
-                <div class="message-content">{{ msg.content }}</div>
+                <div class="message-content" :class="{ 'markdown-content': msg.role === 'ASSISTANT' }">
+                  <div v-if="msg.role === 'ASSISTANT'" v-html="renderMarkdown(msg.content)"></div>
+                  <div v-else>{{ msg.content }}</div>
+                </div>
                 <div v-if="msg.actionType" class="message-action">
                   <el-icon><Position /></el-icon>
                   {{ msg.actionType }}: {{ msg.actionTarget }}
@@ -133,7 +136,7 @@
                   <span class="message-time">{{ formatDateTime(suggestion.createdAt) }}</span>
                 </div>
 
-                <div class="message-content suggestion-content">{{ suggestion.suggestedText }}</div>
+                <div class="message-content suggestion-content markdown-content" v-html="renderMarkdown(suggestion.suggestedText)"></div>
 
                 <div v-if="suggestion.toolCalls && suggestion.toolCalls.length > 0" class="tool-calls-inline">
                   <el-divider content-position="left">
@@ -238,8 +241,8 @@
 
               <div class="product-stock-info">
                 <span class="stock-label">庫存狀態：</span>
-                <span :class="['stock-status', productInfo.stockQuantity > 0 ? 'in-stock' : 'out-of-stock']">
-                  {{ productInfo.stockQuantity > 0 ? `有貨 (${productInfo.stockQuantity} 件)` : '缺貨' }}
+                <span :class="['stock-status', productInfo.stock > 0 ? 'in-stock' : 'out-of-stock']">
+                  {{ productInfo.stock > 0 ? `有貨 (${productInfo.stock} 件)` : '缺貨' }}
                 </span>
               </div>
 
@@ -398,8 +401,15 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Position, Promotion, Loading, Document } from '@element-plus/icons-vue'
+import { marked } from 'marked'
 import chatApi, { SessionDto, ChatHistory, AiSuggestionDto } from '@/api/chat'
 import { useChatWebSocket, type ChatMessage as WSMessage } from '@/composables/useChatWebSocket'
+
+// Configure marked to open links in new tab and add security
+marked.setOptions({
+  breaks: true,
+  gfm: true
+})
 
 const { subscribeToSessionUpdates, subscribeToAdminNewMessages, subscribeToAdminSuggestions, subscribeToAdminUserActions } = useChatWebSocket()
 const sessions = ref<SessionDto[]>([])
@@ -693,6 +703,20 @@ async function confirmReject() {
     console.error('Failed to reject suggestion:', error)
     ElMessage.error('拒絕建議失敗')
   }
+}
+
+/**
+ * Render markdown content to HTML
+ * Links will open in new tab and be styled
+ */
+function renderMarkdown(content: string): string {
+  const html = marked.parse(content) as string
+
+  // Add target="_blank" and rel="noopener noreferrer" to all links for security
+  return html.replace(
+    /<a href=/g,
+    '<a target="_blank" rel="noopener noreferrer" href='
+  )
 }
 
 function formatTime(timestamp: number): string {
@@ -1009,6 +1033,72 @@ h3 {
   color: #333;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+/* Markdown content styling */
+.markdown-content :deep(a) {
+  color: #409eff;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid #409eff;
+  transition: all 0.3s;
+}
+
+.markdown-content :deep(a:hover) {
+  color: #66b1ff;
+  border-bottom-color: #66b1ff;
+  background-color: rgba(64, 158, 255, 0.05);
+}
+
+.markdown-content :deep(p) {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+.markdown-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.markdown-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-content :deep(code) {
+  background-color: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #e6a23c;
+}
+
+.markdown-content :deep(pre) {
+  background-color: #f5f7fa;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.markdown-content :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdown-content :deep(li) {
+  margin: 0.3em 0;
+}
+
+.markdown-content :deep(strong) {
+  font-weight: 600;
+  color: #333;
 }
 
 .message-action {

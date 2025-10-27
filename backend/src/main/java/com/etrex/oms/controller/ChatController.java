@@ -398,35 +398,36 @@ public class ChatController {
 
                     // Check if this AI message contains tool execution requests
                     if (aiMsg.hasToolExecutionRequests()) {
-                        // Manually convert tool execution requests to serializable format
-                        List<Map<String, Object>> toolRequestsData = new ArrayList<>();
+                        // Build user-friendly text for tool execution
                         StringBuilder toolExecutionText = new StringBuilder();
 
+                        // Convert tool requests to Map format for JSON serialization
+                        List<Map<String, Object>> toolRequestsData = new ArrayList<>();
                         for (var toolRequest : aiMsg.toolExecutionRequests()) {
+                            if (toolExecutionText.length() > 0) {
+                                toolExecutionText.append("、");
+                            }
+                            toolExecutionText.append(formatToolName(toolRequest.name()));
+
                             Map<String, Object> requestData = new HashMap<>();
                             requestData.put("id", toolRequest.id());
                             requestData.put("name", toolRequest.name());
                             requestData.put("arguments", toolRequest.arguments());
                             toolRequestsData.add(requestData);
-
-                            // Build user-friendly text
-                            if (toolExecutionText.length() > 0) {
-                                toolExecutionText.append("、");
-                            }
-                            toolExecutionText.append(formatToolName(toolRequest.name()));
                         }
 
                         String metadata = objectMapper.writeValueAsString(toolRequestsData);
                         String content = "🔧 正在執行：" + toolExecutionText.toString();
 
+                        // Save to DB with metadata
                         ChatHistory savedMsg = chatHistoryService.saveMessageWithMetadata(
                                 sessionId, userId, ChatHistory.Role.ASSISTANT.name(), content, metadata);
 
-                        // Push tool execution notification to user via WebSocket
+                        // Also push via WebSocket for real-time display
                         chatNotificationService.notifyUser(
                                 userId, "tool_execution", content, savedMsg.getId());
 
-                        log.debug("Saved and notified AI message with {} tool execution requests",
+                        log.debug("Saved and notified tool execution start for {} tools",
                                 aiMsg.toolExecutionRequests().size());
                     } else {
                         // Regular AI message without tool requests

@@ -29,7 +29,7 @@
       <!-- Messages area -->
       <div class="messages-container" ref="messagesContainer">
         <div
-          v-for="(message, index) in messages"
+          v-for="(message, index) in filteredMessages"
           :key="index"
           :class="['message', message.type]"
         >
@@ -53,8 +53,9 @@
             <span>{{ message.content }}</span>
           </div>
           <div v-else>
-            <div class="message-content">
-              {{ message.content }}
+            <div class="message-content" :class="{ 'markdown-content': message.type === 'bot' }">
+              <div v-if="message.type === 'bot'" v-html="renderMarkdown(message.content)"></div>
+              <div v-else>{{ message.content }}</div>
             </div>
             <div class="message-time">
               {{ formatTime(message.timestamp) }}
@@ -89,11 +90,18 @@ import { ref, nextTick, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChatRound, Close, Operation, Position, Tools, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { marked } from 'marked'
 import chatApi from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useChatTracking } from '@/composables/useChatTracking'
 import { useChatWebSocket, type ChatMessage as WSMessage } from '@/composables/useChatWebSocket'
+
+// Configure marked to open links in new tab and add security
+marked.setOptions({
+  breaks: true,
+  gfm: true
+})
 
 interface Message {
   content: string
@@ -117,6 +125,35 @@ const sessionId = computed(() => String(authStore.user?.id || 'guest'))
 
 // Enable chat tracking (backend auto-tracks all operations)
 useChatTracking()
+
+/**
+ * Filter messages to hide tool_execution messages when corresponding tool_result exists
+ * For example, if there's "✅ 完成：搜尋商品", hide "🔧 正在執行：搜尋商品"
+ */
+const filteredMessages = computed(() => {
+  // First pass: collect all tool names that have completion messages
+  const completedTools = new Set<string>()
+
+  for (const msg of messages.value) {
+    if (msg.type === 'tool_result') {
+      // Extract tool name from "✅ 完成：搜尋商品"
+      const toolName = msg.content.replace('✅ 完成：', '').trim()
+      completedTools.add(toolName)
+    }
+  }
+
+  // Second pass: filter out execution messages that have corresponding completions
+  return messages.value.filter(msg => {
+    if (msg.type === 'tool_execution') {
+      // Extract tool name from "🔧 正在執行：搜尋商品"
+      const toolName = msg.content.replace('🔧 正在執行：', '').trim()
+      // Only show if no completion exists
+      return !completedTools.has(toolName)
+    }
+    // Show all other messages
+    return true
+  })
+})
 
 const toggleChat = async () => {
   isOpen.value = !isOpen.value
@@ -307,6 +344,20 @@ const formatTime = (timestamp: number) => {
   })
 }
 
+/**
+ * Render markdown content to HTML
+ * Links will open in new tab and be styled
+ */
+const renderMarkdown = (content: string): string => {
+  const html = marked.parse(content) as string
+
+  // Add target="_blank" and rel="noopener noreferrer" to all links for security
+  return html.replace(
+    /<a href=/g,
+    '<a target="_blank" rel="noopener noreferrer" href='
+  )
+}
+
 const formatToolNameFromMetadata = (toolName: string): string => {
   const toolNameMap: Record<string, string> = {
     'searchProducts': '搜尋商品',
@@ -374,6 +425,20 @@ onMounted(async () => {
           timestamp: Date.now(),
           navigationPath
         })
+
+        // If it's a tool result for addToCart, refresh the cart
+        if (messageType === 'tool_result' && messageContent.includes('加入購物車')) {
+          console.log('Tool result for addToCart detected, refreshing cart...')
+          // Refresh cart after a short delay to ensure backend has processed
+          setTimeout(async () => {
+            try {
+              await cartStore.loadCart({ tracking: false })
+              console.log('Cart refreshed successfully')
+            } catch (error) {
+              console.error('Failed to refresh cart:', error)
+            }
+          }, 500)
+        }
 
         nextTick(() => {
           scrollToBottom()
@@ -496,6 +561,67 @@ onMounted(async () => {
   background-color: white;
   color: #333;
   border: 1px solid #e4e7ed;
+}
+
+/* Markdown content styling */
+.markdown-content :deep(a) {
+  color: #409eff;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid #409eff;
+  transition: all 0.3s;
+}
+
+.markdown-content :deep(a:hover) {
+  color: #66b1ff;
+  border-bottom-color: #66b1ff;
+  background-color: rgba(64, 158, 255, 0.05);
+}
+
+.markdown-content :deep(p) {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+.markdown-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.markdown-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-content :deep(code) {
+  background-color: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #e6a23c;
+}
+
+.markdown-content :deep(pre) {
+  background-color: #f5f7fa;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.markdown-content :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdown-content :deep(li) {
+  margin: 0.3em 0;
 }
 
 .message-time {
