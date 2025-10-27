@@ -21,6 +21,11 @@ export default {
     return axios.post(`/orders/${id}/payments`, payment)
   },
 
+  confirmBankTransfer(orderId: number, paymentId: number) {
+    console.log('confirmBankTransfer API called:', orderId, paymentId)
+    return axios.post(`/orders/${orderId}/payments/${paymentId}/confirm`)
+  },
+
   cancelOrder(id: number) {
     return axios.post(`/orders/${id}/cancel`)
   },

@@ -33,11 +33,36 @@ public class PaymentService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        // Check if order is cancelled
+        if (order.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Cannot pay for a cancelled order");
+        }
+
+        // Only CREATED orders can be paid
         if (order.getStatus() != Order.Status.CREATED) {
             throw new BusinessException("Order cannot be paid in current status: " + order.getStatus());
         }
 
-        // 模擬付款處理 - 檢查有效期限是否過期
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setPaymentMethod(Payment.PaymentMethod.valueOf(paymentRequest.getPaymentMethod()));
+        payment.setAmount(order.getTotalAmount());
+        payment.setTransactionId(UUID.randomUUID().toString());
+
+        // 銀行轉帳：設為 PENDING，等待管理員確認收款
+        if ("BANK_TRANSFER".equals(paymentRequest.getPaymentMethod())) {
+            payment.setStatus(Payment.Status.PENDING);
+            Payment savedPayment = paymentRepository.save(payment);
+
+            // 訂單狀態保持 CREATED（不改為 PAID）
+            createOrderEvent(order, "PAYMENT_PENDING",
+                "Awaiting bank transfer confirmation. Please transfer to account: 1234-5678-9012, Bank code: 808",
+                order.getCustomer());
+
+            return convertToPaymentDTO(savedPayment);
+        }
+
+        // 其他付款方式：模擬付款處理 - 檢查有效期限是否過期
         boolean paymentSuccess = true;
         String failureReason = null;
 
@@ -51,12 +76,6 @@ public class PaymentService {
                 }
             }
         }
-
-        Payment payment = new Payment();
-        payment.setOrder(order);
-        payment.setPaymentMethod(Payment.PaymentMethod.valueOf(paymentRequest.getPaymentMethod()));
-        payment.setAmount(order.getTotalAmount());
-        payment.setTransactionId(UUID.randomUUID().toString());
 
         if (paymentSuccess) {
             payment.setStatus(Payment.Status.SUCCESS);
@@ -134,6 +153,42 @@ public class PaymentService {
         orderRepository.save(order);
 
         createOrderEvent(order, "PAID", "Payment completed successfully", order.getCustomer());
+
+        return convertToPaymentDTO(savedPayment);
+    }
+
+    /**
+     * 管理員確認銀行轉帳收款
+     * @param paymentId 付款 ID
+     * @return 更新後的付款資訊
+     */
+    @Transactional
+    public PaymentDTO confirmBankTransfer(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        // 只有 PENDING 狀態的付款可以確認
+        if (payment.getStatus() != Payment.Status.PENDING) {
+            throw new BusinessException("Only pending payments can be confirmed. Current status: " + payment.getStatus());
+        }
+
+        // 只有銀行轉帳可以通過此方法確認
+        if (payment.getPaymentMethod() != Payment.PaymentMethod.BANK_TRANSFER) {
+            throw new BusinessException("Only bank transfer payments can be confirmed through this endpoint");
+        }
+
+        // 確認收款
+        payment.setStatus(Payment.Status.SUCCESS);
+        payment.setPaidAt(LocalDateTime.now());
+        Payment savedPayment = paymentRepository.save(payment);
+
+        // 更新訂單狀態為已付款
+        Order order = payment.getOrder();
+        order.setStatus(Order.Status.PAID);
+        orderRepository.save(order);
+
+        // 記錄事件
+        createOrderEvent(order, "PAID", "Bank transfer confirmed by admin", order.getCustomer());
 
         return convertToPaymentDTO(savedPayment);
     }

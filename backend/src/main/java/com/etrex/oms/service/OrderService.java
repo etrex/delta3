@@ -190,6 +190,12 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        // Check if order is already cancelled
+        if (order.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Order is already cancelled");
+        }
+
+        // Only CREATED or PAID orders can be cancelled
         if (order.getStatus() != Order.Status.CREATED && order.getStatus() != Order.Status.PAID) {
             throw new BusinessException("Order cannot be cancelled in current status: " + order.getStatus());
         }
@@ -224,6 +230,12 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        // Check if order is cancelled
+        if (order.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Cannot ship a cancelled order");
+        }
+
+        // Only PAID or APPROVED orders can be shipped
         if (order.getStatus() != Order.Status.PAID && order.getStatus() != Order.Status.APPROVED) {
             throw new BusinessException("Order cannot be shipped in current status: " + order.getStatus());
         }
@@ -269,6 +281,12 @@ public class OrderService {
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        // Check if order is cancelled
+        if (order.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Cannot approve a cancelled order");
+        }
+
+        // Only PAID orders can be approved
         if (order.getStatus() != Order.Status.PAID) {
             throw new BusinessException("Only paid orders can be approved");
         }
@@ -297,6 +315,12 @@ public class OrderService {
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        // Check if order is cancelled
+        if (order.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Cannot ship a cancelled order");
+        }
+
+        // Only PAID or APPROVED orders can be shipped
         if (order.getStatus() != Order.Status.PAID && order.getStatus() != Order.Status.APPROVED) {
             throw new BusinessException("Order cannot be shipped in current status: " + order.getStatus());
         }
@@ -329,6 +353,12 @@ public class OrderService {
         Order order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        // Check if order is cancelled
+        if (order.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Cannot deliver a cancelled order");
+        }
+
+        // Only SHIPPED orders can be marked as delivered
         if (order.getStatus() != Order.Status.SHIPPED) {
             throw new BusinessException("Only shipped orders can be marked as delivered");
         }
@@ -540,6 +570,11 @@ public class OrderService {
                 .filter(o -> o.getStatus() == Order.Status.CART)
                 .findFirst()
                 .orElseThrow(() -> new BusinessException("Cart not found"));
+
+        // Defensive check - cart should never be cancelled, but check anyway
+        if (cart.getStatus() == Order.Status.CANCELLED) {
+            throw new BusinessException("Cannot checkout a cancelled cart");
+        }
 
         if (cart.getItems().isEmpty()) {
             throw new BusinessException("Cart is empty");

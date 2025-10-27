@@ -53,11 +53,11 @@ instance.interceptors.response.use(
         const authStore = useAuthStore()
         authStore.logout()
         window.location.href = '/login'
-      } else {
-        ElMessage.error(error.response.data?.message || 'An error occurred')
       }
+      // Don't show error message here, let the calling code handle it
+      // to avoid duplicate error messages
     } else {
-      ElMessage.error('Network error')
+      ElMessage.error('網路錯誤')
     }
     return Promise.reject(error)
   }

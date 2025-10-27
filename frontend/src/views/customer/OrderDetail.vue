@@ -16,9 +16,20 @@
     <el-card class="order-header-card" data-cy="order-header">
       <div class="header-content">
         <div class="order-id" data-cy="order-id">訂單編號: {{ order.id }}</div>
-        <el-tag :type="getStatusType(order.status)" data-cy="order-status" size="large">
-          {{ getStatusLabel(order.status) }}
-        </el-tag>
+        <div class="header-actions">
+          <el-tag :type="getStatusType(order.status)" data-cy="order-status" size="large">
+            {{ getStatusLabel(order.status) }}
+          </el-tag>
+          <el-button
+            v-if="canCancelOrder"
+            type="danger"
+            size="default"
+            data-cy="cancel-order-btn"
+            @click="showCancelConfirmation"
+          >
+            取消訂單
+          </el-button>
+        </div>
       </div>
       <div class="order-meta">
         <div class="order-date" data-cy="order-date">
@@ -171,7 +182,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, type FormInstance } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import { Lock } from '@element-plus/icons-vue'
 import ordersApi from '@/api/orders'
 import type { Order, Payment, OrderEvent } from '@/types'
@@ -298,6 +309,11 @@ async function processPayment() {
       ElMessage.success('付款成功')
       successMessage.value = '付款成功'
       paymentModalVisible.value = false
+    } else if (response.status === 'PENDING') {
+      // 銀行轉帳：等待確認
+      ElMessage.info('付款資訊已提交，等待確認收款')
+      successMessage.value = '付款資訊已提交，等待管理員確認收款'
+      paymentModalVisible.value = false
     } else if (response.status === 'FAILED') {
       // 付款失敗時關閉 modal 並顯示錯誤訊息
       paymentModalVisible.value = false
@@ -416,6 +432,56 @@ const maskedCardNumber = computed(() => {
   const masked = '**** **** **** ' + lastFour
   return masked
 })
+
+// 判斷是否可以取消訂單（只有 CREATED 或 PAID 狀態可以取消）
+const canCancelOrder = computed(() => {
+  if (!order.value) return false
+  return order.value.status === 'CREATED' || order.value.status === 'PAID'
+})
+
+// 顯示取消訂單確認對話框
+async function showCancelConfirmation() {
+  try {
+    await ElMessageBox.confirm(
+      '確定要取消此訂單嗎？取消後庫存將會恢復，若已付款則會自動退款。',
+      '取消訂單',
+      {
+        confirmButtonText: '確認取消',
+        cancelButtonText: '返回',
+        type: 'warning',
+      }
+    )
+    await cancelOrder()
+  } catch {
+    // 用戶點擊取消或關閉對話框
+  }
+}
+
+// 取消訂單
+async function cancelOrder() {
+  if (!order.value?.id) return
+
+  isProcessing.value = true
+  errorMessage.value = ''
+
+  try {
+    await ordersApi.cancelOrder(order.value.id)
+    ElMessage.success('訂單已取消')
+
+    // 重新載入訂單以更新狀態
+    await loadOrder()
+  } catch (error: any) {
+    console.error('Failed to cancel order:', error)
+    if (error.response?.data?.message) {
+      errorMessage.value = '取消訂單失敗'
+      errorDetails.value = error.response.data.message
+    } else {
+      errorMessage.value = '取消訂單失敗，請稍後再試'
+    }
+  } finally {
+    isProcessing.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -466,6 +532,12 @@ h1 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .order-id {

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -37,6 +38,23 @@ public class PaymentController {
         chatHistoryService.track(
             String.format("支付訂單 (訂單 ID: %d, 金額: %d, 支付方式: %s)",
                 orderId, result.getAmount(), result.getPaymentMethod()));
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{paymentId}/confirm")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Confirm bank transfer", description = "Admin confirms bank transfer payment received (Admin only)")
+    public ResponseEntity<PaymentDTO> confirmBankTransfer(
+            @PathVariable Long orderId,
+            @PathVariable Long paymentId) {
+
+        PaymentDTO result = paymentService.confirmBankTransfer(paymentId);
+
+        // Track confirmation
+        chatHistoryService.track(
+            String.format("確認銀行轉帳收款 (訂單 ID: %d, 付款 ID: %d, 金額: %d)",
+                orderId, paymentId, result.getAmount()));
 
         return ResponseEntity.ok(result);
     }

@@ -26,9 +26,22 @@
         <div v-if="payment.transactionId" data-cy="transaction-id">
           交易號: {{ payment.transactionId }}
         </div>
-        <el-tag :type="getPaymentStatusType(payment.status)" data-cy="payment-status-tag">
-          {{ getPaymentStatusLabel(payment.status) }}
-        </el-tag>
+        <div class="payment-status-row">
+          <el-tag :type="getPaymentStatusType(payment.status)" data-cy="payment-status-tag">
+            {{ getPaymentStatusLabel(payment.status) }}
+          </el-tag>
+
+          <!-- 管理員確認收款按鈕 (僅顯示給 Admin，且付款狀態為 PENDING 且付款方式為銀行轉帳) -->
+          <el-button
+            v-if="showConfirmButton && payment.status === 'PENDING' && payment.paymentMethod === 'BANK_TRANSFER'"
+            type="success"
+            size="small"
+            data-cy="confirm-payment-btn"
+            @click="$emit('confirmPayment', payment.id!)"
+          >
+            確認收款
+          </el-button>
+        </div>
       </div>
 
       <el-tag v-if="hasSuccessfulPayment" type="success" data-cy="payment-completed-badge">
@@ -36,8 +49,8 @@
       </el-tag>
     </div>
 
-    <!-- 未付款顯示付款按鈕 (僅客戶端) -->
-    <div v-if="showPaymentButton && orderStatus === 'CREATED' && !hasSuccessfulPayment && !hasFailedPayment">
+    <!-- 未付款顯示付款按鈕 (僅客戶端，且沒有任何付款記錄時) -->
+    <div v-if="showPaymentButton && orderStatus === 'CREATED' && !hasAnyPayment">
       <el-button
         type="primary"
         data-cy="pay-now-btn"
@@ -62,14 +75,17 @@ interface Props {
   payments?: Payment[]
   orderStatus: string
   showPaymentButton?: boolean
+  showConfirmButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showPaymentButton: false
+  showPaymentButton: false,
+  showConfirmButton: false
 })
 
 defineEmits<{
   pay: []
+  confirmPayment: [paymentId: number]
 }>()
 
 const hasSuccessfulPayment = computed(() => {
@@ -78,6 +94,15 @@ const hasSuccessfulPayment = computed(() => {
 
 const hasFailedPayment = computed(() => {
   return props.payments?.some(p => p.status === 'FAILED') || false
+})
+
+const hasPendingPayment = computed(() => {
+  return props.payments?.some(p => p.status === 'PENDING') || false
+})
+
+// 是否有任何付款記錄（包括所有狀態）
+const hasAnyPayment = computed(() => {
+  return props.payments && props.payments.length > 0
 })
 
 function formatDateTime(date: string | undefined): string {
@@ -145,6 +170,13 @@ function getPaymentStatusType(status: string): string {
   background-color: #fafafa;
   border-radius: 4px;
   margin-bottom: 12px;
+}
+
+.payment-status-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .pay-btn {

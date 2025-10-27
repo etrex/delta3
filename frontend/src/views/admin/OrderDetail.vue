@@ -29,7 +29,12 @@
 
       <el-col :span="8">
         <OrderSummary :total-amount="order.totalAmount" />
-        <PaymentInfo :payments="order.payments" :order-status="order.status" />
+        <PaymentInfo
+          :payments="order.payments"
+          :order-status="order.status"
+          :show-confirm-button="true"
+          @confirm-payment="confirmPayment"
+        />
         <ShippingInfo :order-status="order.status" :updated-at="order.updatedAt" />
       </el-col>
     </el-row>
@@ -39,7 +44,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import ordersApi from '@/api/orders'
 import type { Order, OrderEvent } from '@/types'
 import OrderItems from '@/components/order/OrderItems.vue'
@@ -72,6 +77,56 @@ async function loadOrderEvents(orderId: number) {
     events.value = await ordersApi.getOrderEvents(orderId)
   } catch (error) {
     console.error('Failed to load order events:', error)
+  }
+}
+
+async function confirmPayment(paymentId: number) {
+  if (!order.value) return
+
+  console.log('confirmPayment called with:', {
+    orderId: order.value.id,
+    paymentId: paymentId,
+    payments: order.value.payments
+  })
+
+  try {
+    await ElMessageBox.confirm(
+      '確認已收到客戶的銀行轉帳款項？確認後訂單將標記為已付款。',
+      '確認收款',
+      {
+        confirmButtonText: '確認',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    console.log('Calling API with orderId:', order.value.id, 'paymentId:', paymentId)
+    await ordersApi.confirmBankTransfer(order.value.id!, paymentId)
+    ElMessage.success('已確認收款')
+
+    // 重新載入訂單以更新狀態
+    await loadOrder()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Failed to confirm payment:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      })
+
+      // 根據錯誤狀態顯示更詳細的訊息
+      let errorMessage = '確認收款失敗'
+      if (error.response?.status === 403) {
+        errorMessage = '權限不足：需要管理員權限'
+      } else if (error.response?.status === 404) {
+        errorMessage = '付款記錄不存在'
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
+
+      ElMessage.error(errorMessage)
+    }
   }
 }
 
