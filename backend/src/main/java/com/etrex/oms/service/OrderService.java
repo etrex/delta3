@@ -200,11 +200,13 @@ public class OrderService {
             throw new BusinessException("Order cannot be cancelled in current status: " + order.getStatus());
         }
 
-        // Restore stock
+        // Atomically restore stock (use database-level atomic operation)
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            product.setStock(product.getStock() + item.getQuantity());
-            productRepository.save(product);
+            int rowsAffected = productRepository.restoreStock(item.getProduct().getId(), item.getQuantity());
+            if (rowsAffected == 0) {
+                // This should rarely happen, but log a warning if product not found
+                throw new BusinessException("Failed to restore stock for product ID: " + item.getProduct().getId());
+            }
         }
 
         // Handle refund if paid
@@ -452,11 +454,8 @@ public class OrderService {
 
     @Transactional
     public OrderDTO getOrCreateCart(User user) {
-        // Find existing cart
-        Order cart = orderRepository.findAll().stream()
-                .filter(o -> o.getCustomer().getId().equals(user.getId()))
-                .filter(o -> o.getStatus() == Order.Status.CART)
-                .findFirst()
+        // Find existing cart with items and products (avoid N+1 query)
+        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
                 .orElseGet(() -> {
                     // Create new cart with order number
                     Order newCart = new Order();
@@ -480,11 +479,8 @@ public class OrderService {
             throw new BusinessException("Insufficient stock for product: " + product.getName());
         }
 
-        // Get or create cart
-        Order cart = orderRepository.findAll().stream()
-                .filter(o -> o.getCustomer().getId().equals(user.getId()))
-                .filter(o -> o.getStatus() == Order.Status.CART)
-                .findFirst()
+        // Get or create cart with items and products (avoid N+1 query)
+        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
                 .orElseGet(() -> {
                     Order newCart = new Order();
                     newCart.setCustomer(user);
@@ -521,10 +517,8 @@ public class OrderService {
 
     @Transactional
     public OrderDTO updateCartItem(User user, Long itemId, Integer quantity) {
-        Order cart = orderRepository.findAll().stream()
-                .filter(o -> o.getCustomer().getId().equals(user.getId()))
-                .filter(o -> o.getStatus() == Order.Status.CART)
-                .findFirst()
+        // Get cart with items and products (avoid N+1 query)
+        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
         OrderItem item = cart.getItems().stream()
@@ -544,10 +538,8 @@ public class OrderService {
 
     @Transactional
     public void removeCartItem(User user, Long itemId) {
-        Order cart = orderRepository.findAll().stream()
-                .filter(o -> o.getCustomer().getId().equals(user.getId()))
-                .filter(o -> o.getStatus() == Order.Status.CART)
-                .findFirst()
+        // Get cart with items and products (avoid N+1 query)
+        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
         // Find and remove the item
@@ -565,10 +557,8 @@ public class OrderService {
 
     @Transactional
     public OrderDTO checkoutCart(User user) {
-        Order cart = orderRepository.findAll().stream()
-                .filter(o -> o.getCustomer().getId().equals(user.getId()))
-                .filter(o -> o.getStatus() == Order.Status.CART)
-                .findFirst()
+        // Get cart with items and products (avoid N+1 query)
+        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
                 .orElseThrow(() -> new BusinessException("Cart not found"));
 
         // Defensive check - cart should never be cancelled, but check anyway
@@ -588,16 +578,30 @@ public class OrderService {
             }
         }
 
-        // Deduct stock
+        // Sync latest prices from Product to OrderItem (price snapshot at checkout)
         for (OrderItem item : cart.getItems()) {
             Product product = item.getProduct();
-            product.setStock(product.getStock() - item.getQuantity());
-            productRepository.save(product);
+            item.setPrice(product.getPrice());
+        }
+
+        // Atomically deduct stock (prevent overselling with database-level atomic operation)
+        for (OrderItem item : cart.getItems()) {
+            int rowsAffected = productRepository.deductStock(item.getProduct().getId(), item.getQuantity());
+            if (rowsAffected == 0) {
+                // Stock deduction failed - either insufficient stock or product not found
+                Product product = productRepository.findById(item.getProduct().getId())
+                        .orElseThrow(() -> new BusinessException("Product not found: " + item.getProduct().getId()));
+                throw new BusinessException("Insufficient stock for product: " + product.getName() +
+                        " (requested: " + item.getQuantity() + ", available: " + product.getStock() + ")");
+            }
         }
 
         // Convert cart to order (CART -> CREATED)
         // Order number was already generated when cart was created
         cart.setStatus(Order.Status.CREATED);
+
+        // Recalculate total with the new prices
+        recalculateCartTotal(cart);
 
         // Create order event
         createOrderEvent(cart, "CREATED", "Order created from cart", user);
@@ -606,9 +610,20 @@ public class OrderService {
     }
 
     private void recalculateCartTotal(Order cart) {
-        Integer total = cart.getItems().stream()
-                .map(item -> item.getPrice() * item.getQuantity())
-                .reduce(0, Integer::sum);
+        Integer total;
+
+        if (cart.getStatus() == Order.Status.CART) {
+            // For CART status: use latest Product.price (dynamic pricing)
+            total = cart.getItems().stream()
+                    .map(item -> item.getProduct().getPrice() * item.getQuantity())
+                    .reduce(0, Integer::sum);
+        } else {
+            // For order status: use OrderItem.price (price snapshot)
+            total = cart.getItems().stream()
+                    .map(item -> item.getPrice() * item.getQuantity())
+                    .reduce(0, Integer::sum);
+        }
+
         cart.setTotalAmount(total);
     }
 

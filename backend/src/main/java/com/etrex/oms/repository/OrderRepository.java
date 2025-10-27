@@ -39,6 +39,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.payments WHERE o.orderNo = :orderNo")
     Optional<Order> findByOrderNoWithPayments(String orderNo);
 
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product WHERE o.customer.id = :customerId AND o.status = :status")
+    Optional<Order> findByCustomerIdAndStatusWithItemsAndProducts(Long customerId, Order.Status status);
+
     // ✅ Override findAll to use EntityGraph (solve N+1 query problem)
     @Override
     @EntityGraph(value = "Order.withItemsAndProducts", type = EntityGraph.EntityGraphType.FETCH)
