@@ -78,6 +78,12 @@ npm run test:chrome
 npm run test:headed
 ```
 
-**注意**：執行 E2E 測試前，請確保前端和後端服務都已啟動：
+**注意**：執行 E2E 測試前，請確保前端和後端服務都已透過以下指令啟動：
+
+```bash
+# 停用 RateLimitInterceptor 
+./dev-test.sh
+```
+
 - 前端: http://localhost:5173
 - 後端: http://localhost:8080
