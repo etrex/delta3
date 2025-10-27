@@ -21,9 +21,9 @@ import java.util.List;
     name = "Order.withItemsAndProducts",
     attributeNodes = {
         @NamedAttributeNode(value = "items", subgraph = "items-subgraph"),
-        @NamedAttributeNode("customer"),
-        @NamedAttributeNode("payments"),
-        @NamedAttributeNode("shipping")
+        @NamedAttributeNode("customer")
+        // 移除 payments 和 shipping（避免 MultipleBagFetchException）
+        // 需要時在 Service 層手動批次查詢
     },
     subgraphs = {
         @NamedSubgraph(

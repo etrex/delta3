@@ -163,6 +163,26 @@ public class OrderService {
         };
 
         Page<Order> orders = orderRepository.findAll(spec, pageable);
+
+        // 手動批次查詢 payments（避免 N+1 問題和 MultipleBagFetchException）
+        if (!orders.isEmpty()) {
+            List<Long> orderIds = orders.getContent().stream()
+                    .map(Order::getId)
+                    .collect(Collectors.toList());
+
+            // 批次查詢所有訂單的 payments
+            List<Payment> allPayments = paymentRepository.findByOrderIdIn(orderIds);
+
+            // 將 payments 分組並設置到對應的 order
+            var paymentsByOrderId = allPayments.stream()
+                    .collect(Collectors.groupingBy(payment -> payment.getOrder().getId()));
+
+            orders.forEach(order -> {
+                List<Payment> orderPayments = paymentsByOrderId.getOrDefault(order.getId(), new ArrayList<>());
+                order.setPayments(orderPayments);
+            });
+        }
+
         return orders.map(this::convertToDTO);
     }
 

@@ -3,6 +3,7 @@
  */
 package com.etrex.oms.controller;
 
+import com.etrex.oms.annotation.RateLimit;
 import com.etrex.oms.dto.*;
 import com.etrex.oms.entity.User;
 import com.etrex.oms.exception.BusinessException;
@@ -95,6 +96,7 @@ public class OrderController {
     }
 
     @PostMapping
+    @RateLimit(requests = 5, duration = 60)  // 每 60 秒最多 5 次
     @Operation(summary = "Create order", description = "Create new order")
     public ResponseEntity<OrderDTO> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
@@ -227,6 +229,7 @@ public class OrderController {
     }
 
     @PostMapping("/cart/items")
+    @RateLimit(requests = 10, duration = 60)  // 每 60 秒最多 10 次 (防止暴力添加)
     @Operation(summary = "Add item to cart", description = "Add a product to cart")
     public ResponseEntity<OrderDTO> addToCart(@Valid @RequestBody AddToCartRequest request) {
         User user = getCurrentUser();
@@ -241,6 +244,7 @@ public class OrderController {
     }
 
     @PutMapping("/cart/items/{itemId}")
+    @RateLimit(requests = 10, duration = 60)  // 每 60 秒最多 10 次
     @Operation(summary = "Update cart item", description = "Update quantity of cart item")
     public ResponseEntity<OrderDTO> updateCartItem(
             @PathVariable Long itemId,
@@ -270,6 +274,7 @@ public class OrderController {
     }
 
     @PostMapping("/cart/checkout")
+    @RateLimit(requests = 5, duration = 60)  // 每 60 秒最多 5 次 (結帳操作更嚴格)
     @Operation(summary = "Checkout cart", description = "Convert cart to order (CART -> CREATED)")
     public ResponseEntity<OrderDTO> checkout() {
         User user = getCurrentUser();

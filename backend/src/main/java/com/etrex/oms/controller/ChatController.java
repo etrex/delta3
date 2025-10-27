@@ -5,6 +5,7 @@ package com.etrex.oms.controller;
 
 import com.etrex.oms.ai.CustomerChatService;
 import com.etrex.oms.ai.AdminChatService;
+import com.etrex.oms.annotation.RateLimit;
 import com.etrex.oms.dto.AiSuggestionDto;
 import com.etrex.oms.dto.ChatRequest;
 import com.etrex.oms.dto.ChatResponse;
@@ -48,6 +49,7 @@ public class ChatController {
     private final ToolCallCollector toolCallCollector;
 
     @PostMapping
+    @RateLimit(requests = 5, duration = 60)  // 每 60 秒最多 5 次 (AI 成本高)
     @Operation(summary = "Customer chat", description = "Customer chat with AI assistant (AI-assisted with confidence evaluation)")
     public ResponseEntity<ChatResponse> customerChat(
             @RequestBody ChatRequest request,
@@ -231,6 +233,7 @@ public class ChatController {
     }
 
     @PostMapping("/admin")
+    @RateLimit(requests = 10, duration = 60)  // 每 60 秒最多 10 次 (管理員額度較高)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin chat", description = "Admin chat with AI assistant (tool calling enabled)")
     public ResponseEntity<ChatResponse> adminChat(
