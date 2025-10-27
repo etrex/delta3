@@ -44,7 +44,7 @@
                     :max="getAvailableStock(item.productId)"
                     data-cy="quantity-input"
                     size="small"
-                    @change="(value) => updateQuantity(item.id!, value)"
+                    @change="(value) => handleQuantityChange(item.id!, value, item.quantity)"
                     :controls="false"
                   />
                   <el-button
@@ -60,8 +60,8 @@
               </div>
             </div>
             <div class="item-prices">
-              <span class="item-price" data-cy="item-price">${{ item.price.toFixed(0) }}</span>
-              <span class="item-subtotal" data-cy="item-subtotal">${{ (item.price * item.quantity).toFixed(0) }}</span>
+              <span class="item-price" data-cy="item-price">${{ getLatestPrice(item.productId).toFixed(0) }}</span>
+              <span class="item-subtotal" data-cy="item-subtotal">${{ (getLatestPrice(item.productId) * item.quantity).toFixed(0) }}</span>
               <el-button
                 data-cy="remove-item-btn"
                 size="small"
@@ -120,6 +120,7 @@ const errorMessage = ref('')
 const errorDetails = ref('')
 const successMessage = ref('')
 const productStocks = ref<Record<number, number>>({})
+const productPrices = ref<Record<number, number>>({})
 
 const items = computed(() => cartStore.items)
 const totalAmount = computed(() => cartStore.totalAmount)
@@ -146,21 +147,24 @@ onMounted(async () => {
 
 async function loadProductStocks() {
   try {
-    // Load products without tracking (for stock validation only)
+    // Load products without tracking (for stock and price validation)
     const response = await productsApi.getProducts({ tracking: false })
     console.log('Products API response:', response)
     // axios 攔截器已經自動提取 response.data，所以直接使用 response.content
     const products = response.content || response || []
     console.log('Products:', products)
 
-    // 建立 productId -> stock 的對應
+    // 建立 productId -> stock 和 productId -> price 的對應
     productStocks.value = {}
+    productPrices.value = {}
     products.forEach((product: Product) => {
       if (product.id) {
         productStocks.value[product.id] = product.stock
+        productPrices.value[product.id] = product.price
       }
     })
     console.log('Product stocks loaded:', productStocks.value)
+    console.log('Product prices loaded:', productPrices.value)
   } catch (error) {
     console.error('Failed to load product stocks:', error)
   }
@@ -168,6 +172,11 @@ async function loadProductStocks() {
 
 function getAvailableStock(productId: number): number {
   return productStocks.value[productId] || 999
+}
+
+function getLatestPrice(productId: number): number {
+  // Return latest product price if available, otherwise fall back to item price
+  return productPrices.value[productId] || 0
 }
 
 function isStockInsufficient(item: any): boolean {
@@ -218,6 +227,37 @@ async function confirmOrder() {
 
 function goBackToCart() {
   router.push('/products')
+}
+
+async function handleQuantityChange(itemId: number, newValue: number | null | undefined, oldValue: number) {
+  console.log('handleQuantityChange called:', { itemId, newValue, oldValue, type: typeof newValue })
+
+  // Validate and convert quantity
+  const qty = typeof newValue === 'string' ? parseInt(newValue, 10) : newValue
+
+  if (qty === null || qty === undefined || isNaN(qty) || qty < 1) {
+    console.warn('Invalid quantity after conversion:', qty, 'keeping old value:', oldValue)
+    // Reload cart to reset to correct value
+    await cartStore.loadCart({ tracking: false })
+    return
+  }
+
+  // Only update if value actually changed
+  if (qty === oldValue) {
+    console.log('Quantity unchanged, skipping update')
+    return
+  }
+
+  try {
+    await cartStore.updateCartItem(itemId, qty)
+    console.log('Cart updated successfully, new quantity:', qty)
+    ElMessage.success('已更新數量')
+  } catch (error) {
+    console.error('Failed to update quantity:', error)
+    ElMessage.error('更新數量失敗')
+    // Reload cart on error to reset to correct value
+    await cartStore.loadCart({ tracking: false })
+  }
 }
 
 async function updateQuantity(itemId: number, quantity: number) {
