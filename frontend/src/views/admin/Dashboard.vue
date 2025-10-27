@@ -6,7 +6,7 @@
     <h1>管理後台總覽</h1>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :lg="6">
         <el-card class="stat-card">
           <div class="stat-icon orders">
             <el-icon :size="40"><Document /></el-icon>
@@ -18,7 +18,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :lg="6">
         <el-card class="stat-card">
           <div class="stat-icon products">
             <el-icon :size="40"><Goods /></el-icon>
@@ -30,7 +30,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :lg="6">
         <el-card class="stat-card">
           <div class="stat-icon revenue">
             <el-icon :size="40"><Money /></el-icon>
@@ -42,7 +42,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :lg="6">
         <el-card class="stat-card">
           <div class="stat-icon pending">
             <el-icon :size="40"><Clock /></el-icon>
@@ -84,26 +84,26 @@
     </el-row>
 
     <el-row :gutter="20" class="recent-section">
-      <el-col :span="12">
-        <el-card>
+      <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <el-card class="recent-card">
           <template #header>
             <h3>最近訂單</h3>
           </template>
-          <el-table :data="recentOrders" stripe>
-            <el-table-column prop="orderNo" label="訂單號" width="120" />
-            <el-table-column prop="totalAmount" label="金額" width="100">
+          <el-table :data="recentOrders" stripe class="mobile-table">
+            <el-table-column prop="orderNo" label="訂單號" min-width="100" />
+            <el-table-column prop="totalAmount" label="金額" width="80">
               <template #default="{ row }">
                 ${{ row.totalAmount.toFixed(0) }}
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="狀態" width="100">
+            <el-table-column prop="status" label="狀態" width="80">
               <template #default="{ row }">
-                <el-tag :type="getStatusType(row.status)">
+                <el-tag :type="getStatusType(row.status)" size="small">
                   {{ getStatusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作">
+            <el-table-column label="操作" width="60" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="primary" @click="goTo(`/admin/orders/${row.id}`)">
                   查看
@@ -114,19 +114,19 @@
         </el-card>
       </el-col>
 
-      <el-col :span="12">
-        <el-card>
+      <el-col :xs="24" :sm="24" :md="12" :lg="12">
+        <el-card class="recent-card">
           <template #header>
             <h3>低庫存商品</h3>
           </template>
-          <el-table :data="lowStockProducts" stripe>
-            <el-table-column prop="name" label="商品名稱" />
-            <el-table-column prop="stock" label="庫存" width="80">
+          <el-table :data="lowStockProducts" stripe class="mobile-table">
+            <el-table-column prop="name" label="商品名稱" min-width="120" />
+            <el-table-column prop="stock" label="庫存" width="60">
               <template #default="{ row }">
                 <span :class="{ 'low-stock': row.stock < 10 }">{{ row.stock }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100">
+            <el-table-column label="操作" width="60" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="primary" @click="goTo('/admin/products')">
                   補貨
@@ -329,5 +329,118 @@ h1 {
 h3 {
   margin: 0;
   color: #333;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 0;
+  }
+
+  h1 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .stats-row {
+    margin-bottom: 16px;
+  }
+
+  .stats-row .el-col {
+    margin-bottom: 12px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 12px;
+  }
+
+  .stat-icon .el-icon {
+    font-size: 24px !important;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .quick-actions {
+    margin-bottom: 16px;
+  }
+
+  .actions-grid {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .actions-grid .el-button {
+    max-width: 100%;
+    height: 60px;
+    font-size: 14px;
+  }
+
+  .recent-section {
+    margin-bottom: 16px;
+  }
+
+  .recent-section .el-col {
+    margin-bottom: 16px;
+  }
+
+  .recent-card {
+    font-size: 14px;
+  }
+
+  .mobile-table {
+    font-size: 12px;
+  }
+
+  .mobile-table .el-button {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .mobile-table .el-tag {
+    padding: 0 4px;
+    font-size: 11px;
+  }
+
+  h3 {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 8px;
+  }
+
+  .stat-icon .el-icon {
+    font-size: 20px !important;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .actions-grid .el-button {
+    height: 50px;
+    font-size: 13px;
+  }
 }
 </style>
