@@ -352,6 +352,24 @@ public class ChatController {
     }
 
     /**
+     * Format tool name to user-friendly Chinese text
+     */
+    private String formatToolName(String toolName) {
+        return switch (toolName) {
+            case "searchProducts" -> "搜尋商品";
+            case "getProductDetails" -> "查詢商品詳情";
+            case "getMyOrders" -> "查詢訂單列表";
+            case "getOrderDetails" -> "查詢訂單詳情";
+            case "checkStock" -> "檢查庫存";
+            case "addToCart" -> "加入購物車";
+            case "checkoutCart" -> "結帳";
+            case "cancelOrder" -> "取消訂單";
+            case "searchFAQ" -> "搜尋常見問題";
+            default -> toolName; // Fallback to original name
+        };
+    }
+
+    /**
      * Save new messages from ChatMemory to database
      * This includes tool execution requests, tool results, and intermediate AI messages
      */
@@ -382,21 +400,33 @@ public class ChatController {
                     if (aiMsg.hasToolExecutionRequests()) {
                         // Manually convert tool execution requests to serializable format
                         List<Map<String, Object>> toolRequestsData = new ArrayList<>();
+                        StringBuilder toolExecutionText = new StringBuilder();
+
                         for (var toolRequest : aiMsg.toolExecutionRequests()) {
                             Map<String, Object> requestData = new HashMap<>();
                             requestData.put("id", toolRequest.id());
                             requestData.put("name", toolRequest.name());
                             requestData.put("arguments", toolRequest.arguments());
                             toolRequestsData.add(requestData);
+
+                            // Build user-friendly text
+                            if (toolExecutionText.length() > 0) {
+                                toolExecutionText.append("、");
+                            }
+                            toolExecutionText.append(formatToolName(toolRequest.name()));
                         }
 
                         String metadata = objectMapper.writeValueAsString(toolRequestsData);
-                        String content = aiMsg.text() != null ? aiMsg.text() : "[Tool execution requests]";
+                        String content = "🔧 正在執行：" + toolExecutionText.toString();
 
-                        chatHistoryService.saveMessageWithMetadata(
+                        ChatHistory savedMsg = chatHistoryService.saveMessageWithMetadata(
                                 sessionId, userId, ChatHistory.Role.ASSISTANT.name(), content, metadata);
 
-                        log.debug("Saved AI message with {} tool execution requests",
+                        // Push tool execution notification to user via WebSocket
+                        chatNotificationService.notifyUser(
+                                userId, "tool_execution", content, savedMsg.getId());
+
+                        log.debug("Saved and notified AI message with {} tool execution requests",
                                 aiMsg.toolExecutionRequests().size());
                     } else {
                         // Regular AI message without tool requests
@@ -415,10 +445,17 @@ public class ChatController {
                             "id", toolMsg.id() != null ? toolMsg.id() : ""
                     ));
 
-                    chatHistoryService.saveMessageWithMetadata(
+                    // Create user-friendly completion message
+                    String toolCompletionText = "✅ 完成：" + formatToolName(toolMsg.toolName());
+
+                    ChatHistory savedMsg = chatHistoryService.saveMessageWithMetadata(
                             sessionId, userId, ChatHistory.Role.TOOL.name(), toolMsg.text(), metadata);
 
-                    log.debug("Saved tool execution result for tool: {}", toolMsg.toolName());
+                    // Push tool completion notification to user via WebSocket
+                    chatNotificationService.notifyUser(
+                            userId, "tool_result", toolCompletionText, savedMsg.getId());
+
+                    log.debug("Saved and notified tool execution result for tool: {}", toolMsg.toolName());
                 }
             }
 

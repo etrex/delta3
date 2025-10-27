@@ -44,6 +44,14 @@
               <div class="navigation-path">正在跳轉至：{{ message.navigationPath }}</div>
             </div>
           </div>
+          <div v-else-if="message.type === 'tool_execution'" class="tool-execution-message">
+            <el-icon class="tool-icon spinning"><Tools /></el-icon>
+            <span>{{ message.content }}</span>
+          </div>
+          <div v-else-if="message.type === 'tool_result'" class="tool-result-message">
+            <el-icon class="tool-icon"><CircleCheck /></el-icon>
+            <span>{{ message.content }}</span>
+          </div>
           <div v-else>
             <div class="message-content">
               {{ message.content }}
@@ -79,7 +87,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChatRound, Close, Operation, Position } from '@element-plus/icons-vue'
+import { ChatRound, Close, Operation, Position, Tools, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import chatApi from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
@@ -89,7 +97,7 @@ import { useChatWebSocket, type ChatMessage as WSMessage } from '@/composables/u
 
 interface Message {
   content: string
-  type: 'user' | 'bot' | 'action' | 'navigation'
+  type: 'user' | 'bot' | 'action' | 'navigation' | 'tool_execution' | 'tool_result'
   timestamp: number
   navigationPath?: string
 }
@@ -146,15 +154,40 @@ const loadChatHistory = async () => {
           type: 'user',
           timestamp: new Date(item.createdAt).getTime()
         })
+      } else if (item.role === 'TOOL') {
+        // Tool execution result - extract tool name from metadata
+        let toolDisplayName = '未知工具'
+        if (item.metadata) {
+          try {
+            const metadata = JSON.parse(item.metadata)
+            toolDisplayName = formatToolNameFromMetadata(metadata.toolName)
+          } catch (e) {
+            console.error('Failed to parse tool metadata:', e)
+          }
+        }
+        messages.value.push({
+          content: '✅ 完成：' + toolDisplayName,
+          type: 'tool_result',
+          timestamp: new Date(item.createdAt).getTime()
+        })
       } else if (item.role === 'ASSISTANT') {
-        // Parse and remove navigation commands from history
-        const { cleanContent } = parseNavigationCommand(item.content)
-        if (cleanContent) {
+        // Check if this is a tool execution request
+        if (item.content.startsWith('🔧 正在執行：')) {
           messages.value.push({
-            content: cleanContent,
-            type: 'bot',
+            content: item.content,
+            type: 'tool_execution',
             timestamp: new Date(item.createdAt).getTime()
           })
+        } else {
+          // Parse and remove navigation commands from history
+          const { cleanContent } = parseNavigationCommand(item.content)
+          if (cleanContent) {
+            messages.value.push({
+              content: cleanContent,
+              type: 'bot',
+              timestamp: new Date(item.createdAt).getTime()
+            })
+          }
         }
       }
     }
@@ -274,6 +307,21 @@ const formatTime = (timestamp: number) => {
   })
 }
 
+const formatToolNameFromMetadata = (toolName: string): string => {
+  const toolNameMap: Record<string, string> = {
+    'searchProducts': '搜尋商品',
+    'getProductDetails': '查詢商品詳情',
+    'getMyOrders': '查詢訂單列表',
+    'getOrderDetails': '查詢訂單詳情',
+    'checkStock': '檢查庫存',
+    'addToCart': '加入購物車',
+    'checkoutCart': '結帳',
+    'cancelOrder': '取消訂單',
+    'searchFAQ': '搜尋常見問題'
+  }
+  return toolNameMap[toolName] || toolName
+}
+
 onMounted(async () => {
   // Auto-scroll when new messages are added
   nextTick(() => {
@@ -288,13 +336,17 @@ onMounted(async () => {
 
         // Determine message type based on messageType from backend
         // Note: Backend sends 'messageType' field, not 'type'
-        let messageType: 'user' | 'bot' | 'action' | 'navigation' = 'bot'
+        let messageType: 'user' | 'bot' | 'action' | 'navigation' | 'tool_execution' | 'tool_result' = 'bot'
         const backendMessageType = message.messageType || message.type
 
         if (backendMessageType === 'user_action') {
           messageType = 'action'
         } else if (backendMessageType === 'navigation') {
           messageType = 'navigation'
+        } else if (backendMessageType === 'tool_execution') {
+          messageType = 'tool_execution'
+        } else if (backendMessageType === 'tool_result') {
+          messageType = 'tool_result'
         }
 
         // Parse navigation command from bot messages
@@ -346,9 +398,10 @@ onMounted(async () => {
 <style scoped>
 .chatbot-container {
   position: fixed;
-  bottom: 20px;
+  bottom: 80px;
   right: 20px;
-  z-index: 1000;
+  z-index: 9999;
+  max-height: calc(100vh - 100px);
 }
 
 .chatbot-trigger {
@@ -359,10 +412,44 @@ onMounted(async () => {
 
 .chatbot-window {
   width: 400px;
-  height: 500px;
+  max-height: calc(100vh - 160px);
+  height: auto;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .chatbot-container {
+    bottom: 20px;
+    right: 10px;
+    left: 10px;
+    max-height: calc(100vh - 40px);
+  }
+
+  .chatbot-trigger {
+    width: 56px;
+    height: 56px;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .chatbot-window {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 40px);
+    height: calc(100vh - 40px);
+    min-height: unset;
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  .messages-container {
+    height: calc(100vh - 220px) !important;
+  }
 }
 
 .chatbot-header {
@@ -530,6 +617,57 @@ onMounted(async () => {
   }
   50% {
     transform: scale(1.1);
+  }
+}
+
+/* Tool execution message styling */
+.message.tool_execution,
+.message.tool_result {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tool-execution-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #2d3436;
+  max-width: 90%;
+  box-shadow: 0 2px 8px rgba(253, 203, 110, 0.3);
+}
+
+.tool-result-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #55efc4 0%, #00b894 100%);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #2d3436;
+  max-width: 90%;
+  box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+}
+
+.tool-icon {
+  font-size: 18px;
+  color: #2d3436;
+}
+
+.tool-icon.spinning {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

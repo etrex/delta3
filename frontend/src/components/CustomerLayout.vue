@@ -6,7 +6,9 @@
     <el-header class="header">
       <div class="header-content">
         <h2 class="site-title" @click="goToHome">卡米購</h2>
-        <div class="header-actions">
+
+        <!-- Desktop Navigation -->
+        <div class="header-actions desktop-nav">
           <router-link to="/products" class="nav-link" data-cy="menu-products">
             商品列表
           </router-link>
@@ -28,12 +30,61 @@
           <span class="user-role" data-cy="user-role">Customer</span>
           <el-button data-cy="logout-btn" @click="handleLogout" size="small">登出</el-button>
         </div>
+
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav">
+          <div class="cart-icon" data-cy="menu-cart" @click="showCartDrawer">
+            <el-badge :value="totalItems" :hidden="totalItems === 0">
+              <el-icon :size="24"><ShoppingCart /></el-icon>
+            </el-badge>
+          </div>
+          <el-button class="menu-button" @click="menuDrawerVisible = true" text>
+            <el-icon :size="24"><Menu /></el-icon>
+          </el-button>
+        </div>
       </div>
     </el-header>
 
     <el-main class="main-content">
       <router-view />
     </el-main>
+
+    <!-- 手機版選單 drawer -->
+    <el-drawer
+      v-model="menuDrawerVisible"
+      title="選單"
+      direction="ltr"
+      size="280px"
+    >
+      <div class="mobile-menu">
+        <div class="mobile-menu-user">
+          <div class="mobile-username">{{ authStore.user?.username }}</div>
+          <div class="mobile-user-role">Customer</div>
+        </div>
+
+        <div class="mobile-menu-items">
+          <router-link to="/products" class="mobile-menu-item" @click="menuDrawerVisible = false">
+            <el-icon><ShoppingBag /></el-icon>
+            <span>商品列表</span>
+          </router-link>
+          <router-link to="/orders" class="mobile-menu-item" @click="menuDrawerVisible = false">
+            <el-icon><DocumentCopy /></el-icon>
+            <span>我的訂單</span>
+          </router-link>
+          <router-link to="/faqs" class="mobile-menu-item" @click="menuDrawerVisible = false">
+            <el-icon><QuestionFilled /></el-icon>
+            <span>常見問題</span>
+          </router-link>
+        </div>
+
+        <div class="mobile-menu-footer">
+          <el-button @click="handleLogout" type="danger" size="large" style="width: 100%">
+            <el-icon><SwitchButton /></el-icon>
+            <span>登出</span>
+          </el-button>
+        </div>
+      </div>
+    </el-drawer>
 
     <!-- 購物車抽屜 -->
     <el-drawer
@@ -111,13 +162,21 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import { ShoppingCart } from '@element-plus/icons-vue'
+import {
+  ShoppingCart,
+  Menu,
+  ShoppingBag,
+  DocumentCopy,
+  QuestionFilled,
+  SwitchButton
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 
 const cartDrawerVisible = ref(false)
+const menuDrawerVisible = ref(false)
 const confirmDialogVisible = ref(false)
 const itemToRemove = ref<number | null>(null)
 
@@ -314,5 +373,104 @@ function goToHome() {
 .checkout-btn {
   width: 100%;
   margin-top: 16px;
+}
+
+/* Mobile responsive styles */
+.mobile-nav {
+  display: none;
+  align-items: center;
+  gap: 16px;
+}
+
+.menu-button {
+  color: white;
+  padding: 8px;
+}
+
+.mobile-menu {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mobile-menu-user {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin: -20px -20px 20px -20px;
+}
+
+.mobile-username {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.mobile-user-role {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.mobile-menu-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: #333;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.mobile-menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+.mobile-menu-item .el-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.mobile-menu-footer {
+  padding: 16px 0;
+  border-top: 1px solid #eee;
+}
+
+.user-role {
+  font-size: 12px;
+  padding: 2px 8px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .mobile-nav {
+    display: flex !important;
+  }
+
+  .header {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .site-title {
+    font-size: 18px;
+    margin: 0;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
 }
 </style>
