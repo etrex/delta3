@@ -17,6 +17,21 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@NamedEntityGraph(
+    name = "Order.withItemsAndProducts",
+    attributeNodes = {
+        @NamedAttributeNode(value = "items", subgraph = "items-subgraph"),
+        @NamedAttributeNode("customer"),
+        @NamedAttributeNode("payments"),
+        @NamedAttributeNode("shipping")
+    },
+    subgraphs = {
+        @NamedSubgraph(
+            name = "items-subgraph",
+            attributeNodes = @NamedAttributeNode("product")
+        )
+    }
+)
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

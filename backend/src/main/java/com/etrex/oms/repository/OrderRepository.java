@@ -7,9 +7,12 @@ import com.etrex.oms.entity.Order;
 import com.etrex.oms.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -35,4 +38,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.payments WHERE o.orderNo = :orderNo")
     Optional<Order> findByOrderNoWithPayments(String orderNo);
+
+    // ✅ Override findAll to use EntityGraph (solve N+1 query problem)
+    @Override
+    @EntityGraph(value = "Order.withItemsAndProducts", type = EntityGraph.EntityGraphType.FETCH)
+    @NonNull
+    Page<Order> findAll(@NonNull Specification<Order> spec, @NonNull Pageable pageable);
 }
