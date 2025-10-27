@@ -1,6 +1,15 @@
 # Project-specific
 INPUT_PROMPT.md
 
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+application-local.yml
+application-prod.yml
+
 # Backend
 backend/target/
 
