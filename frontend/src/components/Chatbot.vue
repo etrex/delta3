@@ -297,11 +297,30 @@ onMounted(async () => {
           messageType = 'navigation'
         }
 
+        // Parse navigation command from bot messages
+        let messageContent = message.content
+        let navigationPath: string | undefined
+
+        if (messageType === 'bot') {
+          const { path, cleanContent } = parseNavigationCommand(message.content)
+          if (path) {
+            messageType = 'navigation'
+            messageContent = cleanContent || '正在為您導航'
+            navigationPath = path
+
+            // Navigate after a short delay
+            setTimeout(() => {
+              router.push(path)
+            }, 1000)
+          }
+        }
+
         // Add message to chat
         messages.value.push({
-          content: message.content,
+          content: messageContent,
           type: messageType,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          navigationPath
         })
 
         nextTick(() => {

@@ -43,6 +43,22 @@ public class ChatHistoryService {
     }
 
     /**
+     * Save a message with metadata to chat history
+     * Used for storing tool execution requests and results
+     */
+    @Transactional
+    public ChatHistory saveMessageWithMetadata(String sessionId, Long userId, String role, String content, String metadata) {
+        ChatHistory history = new ChatHistory();
+        history.setSessionId(sessionId);
+        history.setUserId(userId);
+        history.setRole(role);
+        history.setMessageType(ChatHistory.MessageType.MESSAGE.name());
+        history.setContent(content);
+        history.setMetadata(metadata);
+        return chatHistoryRepository.save(history);
+    }
+
+    /**
      * Save a user action to chat history
      */
     @Transactional

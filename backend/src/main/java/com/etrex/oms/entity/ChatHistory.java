@@ -37,6 +37,9 @@ public class ChatHistory {
     @Column(name = "action_target")
     private String actionTarget;
 
+    @Column(name = "metadata", columnDefinition = "TEXT")
+    private String metadata;  // JSON string for tool execution requests/results
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -46,7 +49,7 @@ public class ChatHistory {
     }
 
     public enum Role {
-        USER, ASSISTANT, SYSTEM
+        USER, ASSISTANT, SYSTEM, TOOL
     }
 
     public enum MessageType {

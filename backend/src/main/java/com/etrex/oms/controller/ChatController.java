@@ -19,8 +19,10 @@ import com.etrex.oms.service.ChatContextService;
 import com.etrex.oms.service.ChatNotificationService;
 import com.etrex.oms.service.ConfidenceEvaluator;
 import com.etrex.oms.service.ToolCallCollector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -47,6 +51,7 @@ public class ChatController {
     private final ChatNotificationService chatNotificationService;
     private final ConfidenceEvaluator confidenceEvaluator;
     private final ToolCallCollector toolCallCollector;
+    private final ObjectMapper objectMapper;
 
     @PostMapping
     @RateLimit(requests = 5, duration = 60)  // 每 60 秒最多 5 次 (AI 成本高)
@@ -94,16 +99,23 @@ public class ChatController {
             // 6. Clear and initialize ToolCallCollector for this request
             toolCallCollector.clear();
 
-            // 7. Get conversation history (manual history management)
+            // 7. Get conversation history for confidence evaluation
             List<ChatHistory> historyRecords = chatHistoryService.getRecentHistory(sessionId, 20);
-            List<ChatMessage> conversationHistory = chatHistoryService.getHistoryAsChatMessages(sessionId, 20);
 
-            // 8. Build messages for AI (history + new user message with context)
-            List<ChatMessage> messages = new ArrayList<>(conversationHistory);
-            messages.add(new UserMessage(messageWithContext));
+            // 8. Sync conversation history to ChatMemory before calling assistant
+            customerChatService.syncHistoryToMemory(sessionId, historyRecords);
 
-            // 9. Get AI response using manual chat (NOT using langchain4j ChatMemory)
-            String aiResponse = customerChatService.getChatModel().generate(messages).content().text();
+            // 8.5. Record message count before assistant call
+            int messageCountBefore = customerChatService.getMessageCount(sessionId);
+
+            // 9. Get AI response using CustomerAssistant (with tools and proper memory)
+            String aiResponse = customerChatService.getAssistant().chat(sessionId, messageWithContext);
+
+            // 9.5. Get all new messages added during assistant call (including tool executions)
+            List<ChatMessage> newMessages = customerChatService.getNewMessages(sessionId, messageCountBefore);
+
+            // 9.6. Save all new messages to database (except the last one which is the final AI response)
+            saveNewMessagesToHistory(sessionId, userId, newMessages, aiResponse);
 
             // 10. Collect tool calls from ThreadLocal
             String toolCallsJson = toolCallCollector.toJson();
@@ -337,6 +349,85 @@ public class ChatController {
                 userId, request.getActionType(), request.getActionTarget());
 
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Save new messages from ChatMemory to database
+     * This includes tool execution requests, tool results, and intermediate AI messages
+     */
+    private void saveNewMessagesToHistory(String sessionId, Long userId, List<ChatMessage> newMessages, String finalAiResponse) {
+        try {
+            for (int i = 0; i < newMessages.size(); i++) {
+                ChatMessage message = newMessages.get(i);
+
+                // Skip the last message if it's an AiMessage matching the final response
+                // (we'll save it separately with confidence info)
+                boolean isLastMessage = (i == newMessages.size() - 1);
+                if (isLastMessage && message instanceof AiMessage) {
+                    AiMessage aiMsg = (AiMessage) message;
+                    if (finalAiResponse.equals(aiMsg.text())) {
+                        log.debug("Skipping final AI response (will be saved separately)");
+                        continue;
+                    }
+                }
+
+                if (message instanceof dev.langchain4j.data.message.UserMessage) {
+                    // This is the user's message (already saved before assistant call)
+                    log.debug("Skipping UserMessage (already saved)");
+
+                } else if (message instanceof AiMessage) {
+                    AiMessage aiMsg = (AiMessage) message;
+
+                    // Check if this AI message contains tool execution requests
+                    if (aiMsg.hasToolExecutionRequests()) {
+                        // Manually convert tool execution requests to serializable format
+                        List<Map<String, Object>> toolRequestsData = new ArrayList<>();
+                        for (var toolRequest : aiMsg.toolExecutionRequests()) {
+                            Map<String, Object> requestData = new HashMap<>();
+                            requestData.put("id", toolRequest.id());
+                            requestData.put("name", toolRequest.name());
+                            requestData.put("arguments", toolRequest.arguments());
+                            toolRequestsData.add(requestData);
+                        }
+
+                        String metadata = objectMapper.writeValueAsString(toolRequestsData);
+                        String content = aiMsg.text() != null ? aiMsg.text() : "[Tool execution requests]";
+
+                        chatHistoryService.saveMessageWithMetadata(
+                                sessionId, userId, ChatHistory.Role.ASSISTANT.name(), content, metadata);
+
+                        log.debug("Saved AI message with {} tool execution requests",
+                                aiMsg.toolExecutionRequests().size());
+                    } else {
+                        // Regular AI message without tool requests
+                        chatHistoryService.saveMessage(
+                                sessionId, userId, ChatHistory.Role.ASSISTANT.name(), aiMsg.text());
+
+                        log.debug("Saved intermediate AI message");
+                    }
+
+                } else if (message instanceof ToolExecutionResultMessage) {
+                    ToolExecutionResultMessage toolMsg = (ToolExecutionResultMessage) message;
+
+                    // Save tool execution result with metadata
+                    String metadata = objectMapper.writeValueAsString(Map.of(
+                            "toolName", toolMsg.toolName(),
+                            "id", toolMsg.id() != null ? toolMsg.id() : ""
+                    ));
+
+                    chatHistoryService.saveMessageWithMetadata(
+                            sessionId, userId, ChatHistory.Role.TOOL.name(), toolMsg.text(), metadata);
+
+                    log.debug("Saved tool execution result for tool: {}", toolMsg.toolName());
+                }
+            }
+
+            log.debug("Saved {} new messages to history for session {}", newMessages.size(), sessionId);
+
+        } catch (Exception e) {
+            log.error("Failed to save new messages to history", e);
+            // Don't fail the request if history saving fails
+        }
     }
 
     // DTO for action recording

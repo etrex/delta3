@@ -6,8 +6,12 @@ package com.etrex.oms.service;
 import com.etrex.oms.dto.ChatRequest;
 import com.etrex.oms.dto.OrderDTO;
 import com.etrex.oms.entity.User;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Service for building dynamic context to append at the end of AI prompts.
@@ -34,6 +38,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ChatContextService {
     private final OrderService orderService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Build dynamic context string to append at the END of the prompt.
@@ -51,7 +56,7 @@ public class ChatContextService {
      */
     public String buildDynamicContext(User user, ChatRequest.PageContext pageContext) {
         StringBuilder context = new StringBuilder();
-        context.append("\n\n## 當前狀態資訊 (供參考，請根據用戶問題決定是否需要使用)\n\n");
+        context.append("(以下為用戶當下的狀態)");
 
         // 1. Shopping cart info
         String cartInfo = buildCartContext(user);
@@ -71,62 +76,60 @@ public class ChatContextService {
     }
 
     /**
-     * Build shopping cart context
+     * Build shopping cart context in JSON format
      */
     private String buildCartContext(User user) {
         try {
             OrderDTO cart = orderService.getOrCreateCart(user);
-
-            if (cart.getItems() == null || cart.getItems().isEmpty()) {
-                return "### 購物車狀態\n購物車目前是空的\n\n";
-            }
+            String cartJson = objectMapper.writeValueAsString(cart);
 
             StringBuilder sb = new StringBuilder();
-            sb.append("### 購物車狀態\n");
-            sb.append(String.format("商品數量: %d 件\n", cart.getItems().size()));
-            sb.append(String.format("總金額: NT$ %d\n", cart.getTotalAmount()));
-            sb.append("商品清單:\n");
-
-            cart.getItems().forEach(item -> {
-                sb.append(String.format("  - %s x %d (NT$ %d)\n",
-                    item.getProductName(),
-                    item.getQuantity(),
-                    item.getPrice() * item.getQuantity()));
-            });
-            sb.append("\n");
+            sb.append("\n\n# 目前購物車:\n");
+            sb.append("```json\n");
+            sb.append(cartJson);
+            sb.append("\n```\n");
 
             return sb.toString();
         } catch (Exception e) {
             // If cart query fails, don't break the chat
-            return "### 購物車狀態\n無法取得購物車資訊\n\n";
+            return "\n\n# 目前購物車:\n無法取得購物車資訊\n";
         }
     }
 
     /**
-     * Build page context
+     * Build page context in JSON format
      */
     private String buildPageContext(ChatRequest.PageContext pageContext) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("### 用戶當前頁面\n");
+        try {
+            Map<String, Object> pageData = new HashMap<>();
 
-        if (pageContext.getPath() != null) {
-            sb.append(String.format("路徑: %s\n", pageContext.getPath()));
+            if (pageContext.getPath() != null) {
+                pageData.put("path", pageContext.getPath());
+            }
+
+            if (pageContext.getTitle() != null) {
+                pageData.put("title", pageContext.getTitle());
+            }
+
+            if (pageContext.getPageType() != null) {
+                pageData.put("pageType", pageContext.getPageType());
+            }
+
+            if (pageContext.getData() != null) {
+                pageData.put("data", pageContext.getData());
+            }
+
+            String pageJson = objectMapper.writeValueAsString(pageData);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("\n\n# 用戶當前頁面:\n");
+            sb.append("```json\n");
+            sb.append(pageJson);
+            sb.append("\n```\n");
+
+            return sb.toString();
+        } catch (Exception e) {
+            return "\n\n# 用戶當前頁面:\n無法取得頁面資訊\n";
         }
-
-        if (pageContext.getTitle() != null) {
-            sb.append(String.format("頁面: %s\n", pageContext.getTitle()));
-        }
-
-        if (pageContext.getPageType() != null) {
-            sb.append(String.format("類型: %s\n", pageContext.getPageType()));
-        }
-
-        // Optional: include page-specific data
-        if (pageContext.getData() != null) {
-            sb.append(String.format("頁面資料: %s\n", pageContext.getData().toString()));
-        }
-
-        sb.append("\n");
-        return sb.toString();
     }
 }
