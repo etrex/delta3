@@ -52,10 +52,6 @@ public class OrderService {
             Product product = productRepository.findById(itemDTO.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-            if (!productService.checkStock(product.getId(), itemDTO.getQuantity())) {
-                throw new BusinessException("Insufficient stock for product: " + product.getName());
-            }
-
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setProduct(product);
@@ -65,7 +61,8 @@ public class OrderService {
             items.add(item);
             totalAmount += product.getPrice() * itemDTO.getQuantity();
 
-            productService.updateStock(product.getId(), itemDTO.getQuantity());
+            // Atomically deduct stock (防止超賣)
+            productService.deductStock(product.getId(), itemDTO.getQuantity());
         }
 
         order.setItems(items);
@@ -200,13 +197,9 @@ public class OrderService {
             throw new BusinessException("Order cannot be cancelled in current status: " + order.getStatus());
         }
 
-        // Atomically restore stock (use database-level atomic operation)
+        // Restore stock and clear cache
         for (OrderItem item : order.getItems()) {
-            int rowsAffected = productRepository.restoreStock(item.getProduct().getId(), item.getQuantity());
-            if (rowsAffected == 0) {
-                // This should rarely happen, but log a warning if product not found
-                throw new BusinessException("Failed to restore stock for product ID: " + item.getProduct().getId());
-            }
+            productService.restoreStock(item.getProduct().getId(), item.getQuantity());
         }
 
         // Handle refund if paid
@@ -452,20 +445,40 @@ public class OrderService {
 
     // ========== Cart Methods ==========
 
+    /**
+     * Get or create user's cart, handling duplicate carts if they exist.
+     * If multiple carts exist, keep the oldest and delete newer ones.
+     */
+    private Order getCartForUser(User user) {
+        java.util.List<Order> carts = orderRepository.findAllByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART);
+
+        if (carts.isEmpty()) {
+            // Create new cart
+            Order newCart = new Order();
+            newCart.setCustomer(user);
+            newCart.setStatus(Order.Status.CART);
+            newCart.setOrderNo(generateOrderNo());
+            newCart.setTotalAmount(0);
+            return orderRepository.save(newCart);
+        } else if (carts.size() == 1) {
+            return carts.get(0);
+        } else {
+            // Multiple carts exist - keep the oldest, delete the newer ones
+            carts.sort(java.util.Comparator.comparing(Order::getCreatedAt));
+            Order oldestCart = carts.get(0);
+
+            // Delete newer carts
+            for (int i = 1; i < carts.size(); i++) {
+                orderRepository.delete(carts.get(i));
+            }
+
+            return oldestCart;
+        }
+    }
+
     @Transactional
     public OrderDTO getOrCreateCart(User user) {
-        // Find existing cart with items and products (avoid N+1 query)
-        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
-                .orElseGet(() -> {
-                    // Create new cart with order number
-                    Order newCart = new Order();
-                    newCart.setCustomer(user);
-                    newCart.setStatus(Order.Status.CART);
-                    newCart.setOrderNo(generateOrderNo());  // Generate order number at creation
-                    newCart.setTotalAmount(0);
-                    return orderRepository.save(newCart);
-                });
-
+        Order cart = getCartForUser(user);
         return convertToDTO(cart);
     }
 
@@ -479,16 +492,8 @@ public class OrderService {
             throw new BusinessException("Insufficient stock for product: " + product.getName());
         }
 
-        // Get or create cart with items and products (avoid N+1 query)
-        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
-                .orElseGet(() -> {
-                    Order newCart = new Order();
-                    newCart.setCustomer(user);
-                    newCart.setStatus(Order.Status.CART);
-                    newCart.setOrderNo(generateOrderNo());  // Generate order number at creation
-                    newCart.setTotalAmount(0);
-                    return orderRepository.save(newCart);
-                });
+        // Get or create cart
+        Order cart = getCartForUser(user);
 
         // Check if product already in cart
         OrderItem existingItem = cart.getItems().stream()
@@ -517,9 +522,8 @@ public class OrderService {
 
     @Transactional
     public OrderDTO updateCartItem(User user, Long itemId, Integer quantity) {
-        // Get cart with items and products (avoid N+1 query)
-        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+        // Get cart
+        Order cart = getCartForUser(user);
 
         OrderItem item = cart.getItems().stream()
                 .filter(i -> i.getId().equals(itemId))
@@ -538,9 +542,8 @@ public class OrderService {
 
     @Transactional
     public void removeCartItem(User user, Long itemId) {
-        // Get cart with items and products (avoid N+1 query)
-        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+        // Get cart
+        Order cart = getCartForUser(user);
 
         // Find and remove the item
         OrderItem itemToRemove = cart.getItems().stream()
@@ -557,9 +560,8 @@ public class OrderService {
 
     @Transactional
     public OrderDTO checkoutCart(User user) {
-        // Get cart with items and products (avoid N+1 query)
-        Order cart = orderRepository.findByCustomerIdAndStatusWithItemsAndProducts(user.getId(), Order.Status.CART)
-                .orElseThrow(() -> new BusinessException("Cart not found"));
+        // Get cart
+        Order cart = getCartForUser(user);
 
         // Defensive check - cart should never be cancelled, but check anyway
         if (cart.getStatus() == Order.Status.CANCELLED) {
@@ -585,15 +587,9 @@ public class OrderService {
         }
 
         // Atomically deduct stock (prevent overselling with database-level atomic operation)
+        // Also evicts cache for each product
         for (OrderItem item : cart.getItems()) {
-            int rowsAffected = productRepository.deductStock(item.getProduct().getId(), item.getQuantity());
-            if (rowsAffected == 0) {
-                // Stock deduction failed - either insufficient stock or product not found
-                Product product = productRepository.findById(item.getProduct().getId())
-                        .orElseThrow(() -> new BusinessException("Product not found: " + item.getProduct().getId()));
-                throw new BusinessException("Insufficient stock for product: " + product.getName() +
-                        " (requested: " + item.getQuantity() + ", available: " + product.getStock() + ")");
-            }
+            productService.deductStock(item.getProduct().getId(), item.getQuantity());
         }
 
         // Convert cart to order (CART -> CREATED)

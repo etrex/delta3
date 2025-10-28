@@ -121,7 +121,6 @@ class OrderServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(productService.checkStock(1L, 1)).thenReturn(true);
         when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
         when(orderEventRepository.save(any(OrderEvent.class))).thenReturn(new OrderEvent());
 
@@ -131,8 +130,7 @@ class OrderServiceTest {
         assertEquals("ORD-001", result.getOrderNo());
         verify(userRepository).findById(1L);
         verify(productRepository).findById(1L);
-        verify(productService).checkStock(1L, 1);
-        verify(productService).updateStock(1L, 1);
+        verify(productService).deductStock(1L, 1);
         verify(orderRepository).save(any(Order.class));
         verify(orderEventRepository).save(any(OrderEvent.class));
     }
@@ -176,7 +174,7 @@ class OrderServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(productService.checkStock(1L, 200)).thenReturn(false);
+        doThrow(new BusinessException("Insufficient stock")).when(productService).deductStock(1L, 200);
 
         assertThrows(BusinessException.class, () -> orderService.createOrder(request));
     }
@@ -261,13 +259,12 @@ class OrderServiceTest {
     void cancelOrder_Success_Created() {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
-        when(productRepository.restoreStock(any(Long.class), any(Integer.class))).thenReturn(1);
         when(orderEventRepository.save(any(OrderEvent.class))).thenReturn(new OrderEvent());
 
         OrderDTO result = orderService.cancelOrder(1L);
 
         assertNotNull(result);
-        verify(productRepository).restoreStock(any(Long.class), any(Integer.class));
+        verify(productService).restoreStock(any(Long.class), any(Integer.class));
         verify(orderRepository).save(any(Order.class));
     }
 
@@ -279,7 +276,6 @@ class OrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(paymentRepository.findByOrderAndStatus(testOrder, Payment.Status.SUCCESS)).thenReturn(payments);
         when(paymentRepository.save(any(Payment.class))).thenReturn(testPayment);
-        when(productRepository.restoreStock(any(Long.class), any(Integer.class))).thenReturn(1);
         when(orderRepository.save(any(Order.class))).thenReturn(testOrder);
         when(orderEventRepository.save(any(OrderEvent.class))).thenReturn(new OrderEvent());
 

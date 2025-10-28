@@ -5,9 +5,11 @@ package com.etrex.oms.service;
 
 import com.etrex.oms.dto.ProductDTO;
 import com.etrex.oms.entity.Product;
+import com.etrex.oms.exception.BusinessException;
 import com.etrex.oms.exception.ResourceNotFoundException;
 import com.etrex.oms.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -23,9 +26,12 @@ public class ProductService {
 
     @Cacheable(value = "products", key = "#id")
     public ProductDTO getProductById(Long id) {
+        log.info("🔍 [CACHE] getProductById({}) - 從資料庫查詢（快取未命中）", id);
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        return convertToDTO(product);
+        ProductDTO dto = convertToDTO(product);
+        log.info("📦 [CACHE] getProductById({}) - 查詢結果: stock={}, 即將存入快取", id, dto.getStock());
+        return dto;
     }
 
     public Page<ProductDTO> getProducts(String keyword, Product.Status status, Pageable pageable) {
@@ -46,7 +52,6 @@ public class ProductService {
         return products.map(this::convertToDTO);
     }
 
-    @CacheEvict(value = "products", allEntries = true)
     public ProductDTO createProduct(ProductDTO productDTO) {
         Product product = new Product();
         product.setName(productDTO.getName());
@@ -59,7 +64,7 @@ public class ProductService {
         return convertToDTO(saved);
     }
 
-    @CacheEvict(value = "products", key = "#id")
+    @CacheEvict(value = "products", key = "#id", beforeInvocation = true)
     public ProductDTO updateProduct(Long id, ProductDTO productDTO) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -74,7 +79,7 @@ public class ProductService {
         return convertToDTO(updated);
     }
 
-    @CacheEvict(value = "products", key = "#id")
+    @CacheEvict(value = "products", key = "#id", beforeInvocation = true)
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -82,17 +87,38 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public boolean checkStock(Long productId, Integer quantity) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        return product.getStock() >= quantity;
+    /**
+     * Atomically deduct stock from a product (防止超賣).
+     * This method uses database-level atomic operation to prevent race conditions.
+     *
+     * @param productId The ID of the product
+     * @param quantity The quantity to deduct
+     * @throws BusinessException if stock is insufficient
+     */
+    @CacheEvict(value = "products", key = "#productId", beforeInvocation = true)
+    public void deductStock(Long productId, Integer quantity) {
+        log.info("🗑️  [CACHE] deductStock({}, {}) - 開始執行，已清除快取 key='products::{}'",
+            productId, quantity, productId);
+        int rowsAffected = productRepository.deductStock(productId, quantity);
+        if (rowsAffected == 0) {
+            // Stock deduction failed - either insufficient stock or product not found
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            throw new BusinessException("Insufficient stock for product: " + product.getName() +
+                    " (requested: " + quantity + ", available: " + product.getStock() + ")");
+        }
+        log.info("✅ [CACHE] deductStock({}) - 庫存已扣減 -{}, 快取已清除", productId, quantity);
     }
 
-    public void updateStock(Long productId, Integer quantity) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        product.setStock(product.getStock() - quantity);
-        productRepository.save(product);
+    @CacheEvict(value = "products", key = "#productId", beforeInvocation = true)
+    public void restoreStock(Long productId, Integer quantity) {
+        log.info("🔄 [CACHE] restoreStock({}, {}) - 已清除快取 key='products::{}'",
+            productId, quantity, productId);
+        int rowsAffected = productRepository.restoreStock(productId, quantity);
+        if (rowsAffected == 0) {
+            throw new ResourceNotFoundException("Product not found or failed to restore stock");
+        }
+        log.info("✅ [CACHE] restoreStock({}) - 庫存已還原 +{}", productId, quantity);
     }
 
     private ProductDTO convertToDTO(Product product) {

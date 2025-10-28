@@ -112,8 +112,8 @@ public class OrderTools {
     @Tool("確認一個商品是否有足夠的貨")
     public String checkStock(Long productId, Integer quantity) {
         try {
-            boolean available = productService.checkStock(productId, quantity);
             ProductDTO product = productService.getProductById(productId);
+            boolean available = product.getStock() >= quantity;
 
             Map<String, Object> result = new HashMap<>();
             result.put("available", available);

@@ -5,6 +5,7 @@ package com.etrex.oms.service;
 
 import com.etrex.oms.dto.ProductDTO;
 import com.etrex.oms.entity.Product;
+import com.etrex.oms.exception.BusinessException;
 import com.etrex.oms.exception.ResourceNotFoundException;
 import com.etrex.oms.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -223,65 +224,40 @@ class ProductServiceTest {
     }
 
     @Test
-    void checkStock_Sufficient() {
+    void deductStock_Success() {
+        when(productRepository.deductStock(1L, 30)).thenReturn(1);
+
+        productService.deductStock(1L, 30);
+
+        verify(productRepository, times(1)).deductStock(1L, 30);
+        verify(productRepository, never()).findById(any());
+    }
+
+    @Test
+    void deductStock_InsufficientStock() {
+        when(productRepository.deductStock(1L, 200)).thenReturn(0);
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
 
-        boolean result = productService.checkStock(1L, 50);
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            productService.deductStock(1L, 200);
+        });
 
-        assertTrue(result);
+        assertTrue(exception.getMessage().contains("Insufficient stock"));
+        assertTrue(exception.getMessage().contains("requested: 200"));
+        assertTrue(exception.getMessage().contains("available: 100"));
+        verify(productRepository, times(1)).deductStock(1L, 200);
         verify(productRepository, times(1)).findById(1L);
     }
 
     @Test
-    void checkStock_Insufficient() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-
-        boolean result = productService.checkStock(1L, 150);
-
-        assertFalse(result);
-        verify(productRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    void checkStock_ExactAmount() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-
-        boolean result = productService.checkStock(1L, 100);
-
-        assertTrue(result);
-        verify(productRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    void checkStock_ProductNotFound() {
+    void deductStock_ProductNotFound() {
+        when(productRepository.deductStock(999L, 10)).thenReturn(0);
         when(productRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
-            productService.checkStock(999L, 10);
+            productService.deductStock(999L, 10);
         });
+        verify(productRepository, times(1)).deductStock(999L, 10);
         verify(productRepository, times(1)).findById(999L);
-    }
-
-    @Test
-    void updateStock_Success() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(productRepository.save(any(Product.class))).thenReturn(testProduct);
-
-        productService.updateStock(1L, 30);
-
-        assertEquals(70, testProduct.getStock());
-        verify(productRepository, times(1)).findById(1L);
-        verify(productRepository, times(1)).save(any(Product.class));
-    }
-
-    @Test
-    void updateStock_ProductNotFound() {
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> {
-            productService.updateStock(999L, 10);
-        });
-        verify(productRepository, times(1)).findById(999L);
-        verify(productRepository, never()).save(any(Product.class));
     }
 }

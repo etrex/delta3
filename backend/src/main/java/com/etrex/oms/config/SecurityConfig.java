@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**", "/h2-console/**", "/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll() // 測試 endpoint（只在 test/dev profile 啟用）
+                        .requestMatchers("/api/cache/**").permitAll() // 快取監控 endpoint
                         .requestMatchers("/ws/**").permitAll() // Allow WebSocket connections
                         .requestMatchers(HttpMethod.GET, "/api/product", "/api/product/*").permitAll() // Allow GET products without authentication
                         .requestMatchers("/api/product/admin/**").hasRole("ADMIN")
