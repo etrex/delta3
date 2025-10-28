@@ -230,8 +230,8 @@ public class OrderService {
             throw new BusinessException("Cannot ship a cancelled order");
         }
 
-        // Only PAID or APPROVED orders can be shipped
-        if (order.getStatus() != Order.Status.PAID && order.getStatus() != Order.Status.APPROVED) {
+        // Only APPROVED orders can be shipped
+        if (order.getStatus() != Order.Status.APPROVED) {
             throw new BusinessException("Order cannot be shipped in current status: " + order.getStatus());
         }
 
