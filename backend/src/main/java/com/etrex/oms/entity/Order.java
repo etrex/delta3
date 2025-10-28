@@ -17,6 +17,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@lombok.EqualsAndHashCode(exclude = {"shipping", "items", "payments", "events"})
+@lombok.ToString(exclude = {"shipping", "items", "payments", "events"})
 @NamedEntityGraph(
     name = "Order.withItemsAndProducts",
     attributeNodes = {

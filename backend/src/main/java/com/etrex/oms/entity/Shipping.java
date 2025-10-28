@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@lombok.EqualsAndHashCode(exclude = {"order"})
+@lombok.ToString(exclude = {"order"})
 public class Shipping {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

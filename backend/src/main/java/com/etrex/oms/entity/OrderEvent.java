@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@lombok.EqualsAndHashCode(exclude = {"order", "modifiedBy"})
+@lombok.ToString(exclude = {"order", "modifiedBy"})
 public class OrderEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
